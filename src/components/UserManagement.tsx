@@ -293,9 +293,39 @@ export function UserManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.email.trim() || !formData.password.trim() || !formData.name.trim()) {
+    // Validação de campos obrigatórios
+    // Para edição: email e nome são obrigatórios, senha é opcional
+    // Para criação: email, nome e senha são obrigatórios
+    if (!formData.email.trim() || !formData.name.trim()) {
       toast.error('Campos obrigatórios', {
         description: 'Preencha todos os campos obrigatórios.',
+        duration: 4000,
+      });
+      return;
+    }
+
+    // Validação de senha apenas para criação de usuário ou quando senha é fornecida na edição
+    if (!editingId && !formData.password.trim()) {
+      toast.error('Campos obrigatórios', {
+        description: 'A senha é obrigatória para criar um novo usuário.',
+        duration: 4000,
+      });
+      return;
+    }
+
+    // Se está editando e forneceu uma senha, valida o comprimento mínimo
+    if (editingId && formData.password.trim() && formData.password.length < 6) {
+      toast.error('Senha inválida', {
+        description: 'A senha deve ter pelo menos 6 caracteres.',
+        duration: 4000,
+      });
+      return;
+    }
+
+    // Se está criando um usuário, valida o comprimento mínimo da senha
+    if (!editingId && formData.password.length < 6) {
+      toast.error('Senha inválida', {
+        description: 'A senha deve ter pelo menos 6 caracteres.',
         duration: 4000,
       });
       return;
