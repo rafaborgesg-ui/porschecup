@@ -91,21 +91,51 @@ export function isAndroid(): boolean {
 }
 
 /**
- * Adiciona o app à tela inicial (Android)
+ * Adiciona o app à tela inicial (Android/Chrome/Edge)
  */
 export function addToHomeScreen() {
-  // O evento beforeinstallprompt deve ser capturado antes
+  console.log('🚀 Tentando instalar PWA...');
+  
+  // Verifica se já está rodando como PWA
+  if (isPWA()) {
+    console.log('✅ App já está instalado como PWA');
+    return;
+  }
+  
+  // Para iOS, mostra instruções
+  if (isIOS()) {
+    console.log('🍎 iOS: Mostrando instruções de instalação');
+    // O componente PWAInstallPrompt já cuida das instruções para iOS
+    return;
+  }
+  
+  // Para Android/Chrome/Edge
   const deferredPrompt = (window as any).deferredPrompt;
   
   if (deferredPrompt) {
+    console.log('📱 Executando prompt de instalação nativo');
     deferredPrompt.prompt();
     
     deferredPrompt.userChoice.then((choiceResult: any) => {
+      console.log('🎯 Resposta do usuário:', choiceResult.outcome);
       if (choiceResult.outcome === 'accepted') {
-        console.log('Usuário aceitou adicionar à tela inicial');
+        console.log('✅ Usuário aceitou adicionar à tela inicial');
+        // Remove o prompt dismissed para não mostrar novamente
+        localStorage.removeItem('pwa-install-dismissed');
+      } else {
+        console.log('❌ Usuário rejeitou a instalação');
+        // Não marca como dismissed para permitir tentar novamente mais tarde
       }
       (window as any).deferredPrompt = null;
+    }).catch((error: any) => {
+      console.error('❌ Erro no prompt de instalação:', error);
     });
+  } else {
+    console.log('⚠️ beforeinstallprompt não disponível');
+    // Pode ser que o usuário já tenha instalado ou o browser não suporte
+    if ('serviceWorker' in navigator) {
+      console.log('💡 Dica: Procure pelo ícone de instalação na barra de endereços');
+    }
   }
 }
 
@@ -200,23 +230,64 @@ export function getDisplayMode(): 'browser' | 'standalone' | 'minimal-ui' | 'ful
  * Captura o evento de instalação do PWA
  */
 export function setupInstallPrompt() {
-  // Só configura em ambientes de produção
-  if (window.location.hostname.includes('figma') || 
-      window.location.hostname === 'localhost') {
-    console.log('Install prompt desabilitado em ambiente de preview');
+  // Configura em todos os ambientes de produção (Vercel)
+  console.log('🚀 Configurando PWA Install Prompt...');
+  console.log('🌐 Hostname:', window.location.hostname);
+  console.log('📱 User Agent:', navigator.userAgent);
+  
+  // Verifica se é um dispositivo compatível com PWA
+  const isCompatible = isMobile() || isDesktopCompatible();
+  console.log('✅ PWA Compatible:', isCompatible);
+  
+  // Para iOS, mostra prompt personalizado imediatamente se for móvel
+  if (isIOS()) {
+    console.log('🍎 iOS detectado - Configurando prompt personalizado');
+    setTimeout(() => {
+      if (!isPWA() && !localStorage.getItem('pwa-install-dismissed')) {
+        console.log('📲 Disparando evento PWA para iOS');
+        window.dispatchEvent(new Event('pwa-installable'));
+      }
+    }, 3000); // Aguarda 3 segundos após carregar
     return;
   }
 
+  // Para Android/Chrome/Edge
+  let deferredPrompt: any = null;
+  
   window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('📱 beforeinstallprompt capturado!');
     e.preventDefault();
+    deferredPrompt = e;
     (window as any).deferredPrompt = e;
     
     // Dispara evento customizado para mostrar botão de instalação
-    window.dispatchEvent(new Event('pwa-installable'));
+    setTimeout(() => {
+      if (!localStorage.getItem('pwa-install-dismissed')) {
+        console.log('🎯 Disparando evento pwa-installable');
+        window.dispatchEvent(new Event('pwa-installable'));
+      }
+    }, 2000);
   });
   
   window.addEventListener('appinstalled', () => {
-    console.log('PWA instalado com sucesso');
+    console.log('✅ PWA instalado com sucesso');
+    deferredPrompt = null;
     (window as any).deferredPrompt = null;
+    localStorage.removeItem('pwa-install-dismissed');
   });
+  
+  // Fallback: se não receber beforeinstallprompt em 5 segundos, tenta mostrar anyway
+  setTimeout(() => {
+    if (!deferredPrompt && !isPWA() && isCompatible && !localStorage.getItem('pwa-install-dismissed')) {
+      console.log('⚠️ Fallback: Mostrando prompt sem beforeinstallprompt');
+      window.dispatchEvent(new Event('pwa-installable'));
+    }
+  }, 5000);
+}
+
+/**
+ * Verifica se é um desktop compatível com PWA
+ */
+function isDesktopCompatible(): boolean {
+  return /Chrome|Edge/.test(navigator.userAgent) && !isMobile();
 }

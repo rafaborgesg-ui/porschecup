@@ -392,6 +392,22 @@ export default function App() {
       {/* PWA Install Prompt */}
       {isAuthenticated && <PWAInstallPrompt />}
       
+      {/* Botão PWA sempre visível em mobile para debug/fallback */}
+      {isAuthenticated && (
+        <div className="lg:hidden fixed bottom-2 right-2 z-40">
+          <button
+            onClick={() => {
+              // Força o evento pwa-installable para mostrar o prompt
+              window.dispatchEvent(new Event('pwa-installable'));
+            }}
+            className="bg-[#D50000] text-white p-2 rounded-full shadow-lg text-xs opacity-20 hover:opacity-100 transition-opacity"
+            title="Instalar App"
+          >
+            📱
+          </button>
+        </div>
+      )}
+      
       <Toaster />
     </div>
   );

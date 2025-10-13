@@ -2,17 +2,23 @@ import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { addToHomeScreen, isIOS } from '../utils/pwa';
+import { addToHomeScreen, isIOS, isMobile, isPWA } from '../utils/pwa';
 
 export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
 
   useEffect(() => {
-    setIsIOSDevice(isIOS());
+    const iosDevice = isIOS();
+    setIsIOSDevice(iosDevice);
+    
+    // Debug info
+    const debug = `iOS: ${iosDevice}, Mobile: ${isMobile()}, PWA: ${isPWA()}, UA: ${navigator.userAgent.substring(0, 50)}...`;
+    console.log('🔍 PWA Debug:', debug);
     
     // Listen for the custom event
     const handleInstallable = () => {
+      console.log('🎯 PWA Installable event received!');
       setShowPrompt(true);
     };
     
@@ -20,8 +26,21 @@ export function PWAInstallPrompt() {
     
     // Check if already dismissed
     const dismissed = localStorage.getItem('pwa-install-dismissed');
-    if (dismissed) {
+    const alreadyPWA = isPWA();
+    
+    console.log('📊 PWA Status:', { dismissed, alreadyPWA, iosDevice });
+    
+    if (dismissed || alreadyPWA) {
       setShowPrompt(false);
+      console.log('❌ PWA Prompt não será mostrado:', { dismissed, alreadyPWA });
+    } else {
+      // Para debug em desenvolvimento, mostra sempre após 3 segundos
+      if (window.location.hostname === 'localhost') {
+        setTimeout(() => {
+          console.log('🧪 Debug: Forçando prompt em localhost');
+          setShowPrompt(true);
+        }, 3000);
+      }
     }
     
     return () => {
