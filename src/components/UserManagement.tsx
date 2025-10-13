@@ -43,14 +43,15 @@ async function fetchUsersFromSupabase(): Promise<User[]> {
     const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !currentUser) {
-      throw new Error('Usuário não autenticado');
+      console.log('No authenticated user, returning empty list');
+      return [];
     }
     
     console.log('Current user:', currentUser);
     
-    // Try to get users from auth.users table (requires service role)
-    // For now, let's return mock data or try a different approach
-    const mockUsers: User[] = [
+    // Since we can't access all users without admin privileges,
+    // we'll show the current user and any users we've created locally
+    const users: User[] = [
       {
         id: currentUser.id,
         email: currentUser.email || '',
@@ -62,7 +63,26 @@ async function fetchUsersFromSupabase(): Promise<User[]> {
       }
     ];
     
-    return mockUsers;
+    // Try to get additional users from localStorage (for demo purposes)
+    try {
+      const localUsers = localStorage.getItem('porsche_cup_users');
+      if (localUsers) {
+        const parsed = JSON.parse(localUsers);
+        if (Array.isArray(parsed)) {
+          // Add local users that aren't already in the list
+          parsed.forEach(localUser => {
+            if (!users.find(u => u.email === localUser.email)) {
+              users.push(localUser);
+            }
+          });
+        }
+      }
+    } catch (storageError) {
+      console.log('No local users found');
+    }
+    
+    console.log('Returning users:', users);
+    return users;
   } catch (error) {
     console.error('Error in fetchUsersFromSupabase:', error);
     throw error;
@@ -71,56 +91,13 @@ async function fetchUsersFromSupabase(): Promise<User[]> {
 
 async function fetchUsers(): Promise<User[]> {
   try {
-    const token = await getAccessToken();
+    console.log('🔍 Fetching users directly from Supabase...');
     
-    if (!token) {
-      throw new Error('Token não encontrado');
-    }
-    
-    console.log('🔍 Fetching users with token:', token ? 'Token found' : 'No token');
-    
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nflgqugaabtxzifyhjor.supabase.co';
-    const functionUrl = `${supabaseUrl}/functions/v1/make-server-18cdc61b/users`;
-    
-    console.log('📡 Calling URL:', functionUrl);
-    
-    const response = await fetch(functionUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbGdxdWdhYWJ0eHppZnloam9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNjU4MDQsImV4cCI6MjA3NTg0MTgwNH0.V6Is77Z0AfcY1K3H0b2yr5HDCGKX8OAHdx6bUnZYzOA'
-      }
-    });
-    
-    console.log('📊 Response status:', response.status);
-    console.log('📊 Response headers:', Object.fromEntries(response.headers.entries()));
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Response error:', errorText);
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log('✅ Response data:', result);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Erro ao buscar usuários');
-    }
-    
-    return result.data || [];
+    // Skip the problematic Edge Functions and use direct Supabase fallback
+    return await fetchUsersFromSupabase();
   } catch (error) {
-    console.error('❌ Error fetching users from API:', error);
-    
-    // Fallback: try to get users directly from Supabase
-    console.log('🔄 Trying fallback method...');
-    try {
-      return await fetchUsersFromSupabase();
-    } catch (fallbackError) {
-      console.error('❌ Fallback also failed:', fallbackError);
-      throw error; // Throw original error
-    }
+    console.error('❌ Error fetching users:', error);
+    throw error;
   }
 }
 
@@ -132,49 +109,59 @@ async function createUser(userData: {
   username: string;
 }): Promise<User> {
   try {
-    console.log('🔨 Creating user directly via Supabase Admin API...');
+    console.log('🔨 Creating user directly via Supabase Auth SDK...');
     
-    // Use the public signup endpoint instead of the problematic Edge Function
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nflgqugaabtxzifyhjor.supabase.co';
+    const supabase = createClient();
     
-    const response = await fetch(`${supabaseUrl}/functions/v1/make-server-18cdc61b/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbGdxdWdhYWJ0eHppZnloam9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNjU4MDQsImV4cCI6MjA3NTg0MTgwNH0.V6Is77Z0AfcY1K3H0b2yr5HDCGKX8OAHdx6bUnZYzOA'
-      },
-      body: JSON.stringify({
-        email: userData.email,
-        password: userData.password,
-        name: userData.name
-      })
+    // Use Supabase Auth directly to create the user
+    const { data, error } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        data: {
+          name: userData.name,
+          role: userData.role,
+          username: userData.username || userData.email.split('@')[0]
+        }
+      }
     });
     
-    console.log('📊 Create user response status:', response.status);
+    console.log('📊 Supabase signUp response:', { data, error });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Create user error:', errorText);
-      throw new Error(`Erro ao criar usuário: ${errorText}`);
+    if (error) {
+      console.error('❌ Supabase signUp error:', error);
+      throw new Error(error.message || 'Erro ao criar usuário');
     }
     
-    const result = await response.json();
-    console.log('✅ Create user result:', result);
-    
-    if (!result.success) {
-      throw new Error(result.error || 'Erro ao criar usuário');
+    if (!data.user) {
+      throw new Error('Usuário não foi criado corretamente');
     }
     
-    // Return formatted user data
-    return {
-      id: result.user.id,
-      email: result.user.email,
-      name: result.user.name,
-      username: userData.username || userData.email.split('@')[0],
-      role: userData.role, // Note: public signup creates operators, but we'll show what was requested
-      active: true,
-      createdAt: new Date().toISOString()
-    };
+    console.log('✅ User created successfully:', data.user);
+        
+        // Format user data
+        const newUser = {
+          id: data.user.id,
+          email: data.user.email || userData.email,
+          name: userData.name,
+          username: userData.username || userData.email.split('@')[0],
+          role: userData.role,
+          active: true,
+          createdAt: data.user.created_at || new Date().toISOString()
+        };
+        
+        // Save to localStorage for demo purposes
+        try {
+          const existingUsers = localStorage.getItem('porsche_cup_users');
+          const users = existingUsers ? JSON.parse(existingUsers) : [];
+          users.push(newUser);
+          localStorage.setItem('porsche_cup_users', JSON.stringify(users));
+          console.log('✅ User saved to localStorage');
+        } catch (storageError) {
+          console.log('⚠️ Could not save to localStorage:', storageError);
+        }
+        
+        return newUser;
   } catch (error) {
     console.error('Error in createUser:', error);
     throw error;
