@@ -788,7 +788,7 @@ export function UserManagement() {
                       disabled={currentPage === Math.ceil(users.length / itemsPerPage)}
                       className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                     >
-                      Pr��xima
+                      Próxima
                     </button>
                   </div>
                 </div>
