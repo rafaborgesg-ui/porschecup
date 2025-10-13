@@ -36,8 +36,8 @@ Sistema web moderno desenvolvido para gerenciamento de estoque de pneus da Porsc
 
 1. **Clone o repositório**
    ```bash
-   git clone https://github.com/seu-usuario/porsche-cup.git
-   cd porsche-cup
+   git clone https://github.com/rafaborgesg-ui/porschecup.git
+   cd porschecup
    ```
 
 2. **Instale as dependências**
@@ -133,8 +133,8 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 ## 👨‍💻 Autor
 
 **Rafael Borges**
-- GitHub: [@seu-usuario](https://github.com/seu-usuario)
-- LinkedIn: [Seu LinkedIn](https://linkedin.com/in/seu-perfil)
+- GitHub: [@rafaborgesg-ui](https://github.com/rafaborgesg-ui)
+- LinkedIn: [Rafael Borges](https://linkedin.com/in/rafael-borges)
 
 ## 🎨 Design
 

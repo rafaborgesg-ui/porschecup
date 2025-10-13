@@ -7,10 +7,10 @@
       "keywords": ["porsche", "racing", "tire-management", "react", "vite", "typescript"],
       "author": "Rafael Borges",
       "license": "MIT",
-      "homepage": "https://porsche-cup.vercel.app",
+      "homepage": "https://porschecup.vercel.app",
       "repository": {
           "type": "git",
-          "url": "https://github.com/seu-usuario/porsche-cup.git"
+          "url": "https://github.com/rafaborgesg-ui/porschecup.git"
       },
       "engines": {
           "node": ">=18.0.0",
