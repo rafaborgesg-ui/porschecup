@@ -1,0 +1,2267 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  
+  /* Cores Porsche Premium */
+  --porsche-red: #D50000;
+  --porsche-red-dark: #A80000;
+  --porsche-red-light: #FF5252;
+  --porsche-black: #000000;
+  --porsche-silver: #C0C0C0;
+  --racing-green: #00A86B;
+  --racing-yellow: #FFB800;
+  --carbon-fiber: #1A1A1A;
+  
+  /* Base colors */
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  
+  /* Primary - Porsche Red */
+  --primary: #D50000;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary - Carbon Fiber */
+  --secondary: #F5F5F5;
+  --secondary-foreground: #1A1A1A;
+  
+  /* Muted */
+  --muted: #F5F5F5;
+  --muted-foreground: #6B6B6B;
+  
+  /* Accent - Porsche Red Light */
+  --accent: #FFF5F5;
+  --accent-foreground: #D50000;
+  
+  /* Destructive - Porsche Red */
+  --destructive: #D50000;
+  --destructive-foreground: #ffffff;
+  
+  /* Success - Racing Green */
+  --success: #00A86B;
+  --success-foreground: #ffffff;
+  
+  /* Warning - Racing Yellow */
+  --warning: #FFB800;
+  --warning-foreground: #000000;
+  
+  /* Info - Blue */
+  --info: #3B82F6;
+  --info-foreground: #ffffff;
+  
+  /* Borders and inputs */
+  --border: rgba(0, 0, 0, 0.1);
+  --input: transparent;
+  --input-background: #F9F9F9;
+  --switch-background: #E0E0E0;
+  
+  /* Typography */
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  
+  /* Focus ring - Porsche Red */
+  --ring: #D50000;
+  
+  /* Charts - Racing colors */
+  --chart-1: #D50000;  /* Vermelho Porsche */
+  --chart-2: #00A86B;  /* Verde Racing */
+  --chart-3: #3B82F6;  /* Azul */
+  --chart-4: #FFB800;  /* Amarelo Racing */
+  --chart-5: #8B5CF6;  /* Roxo */
+  
+  /* Radius */
+  --radius: 0.75rem;
+  
+  /* Sidebar */
+  --sidebar: #FAFAFA;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #D50000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #F5F5F5;
+  --sidebar-accent-foreground: #1A1A1A;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: #D50000;
+  
+  /* Shadows Premium */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.16);
+  --shadow-porsche: 0 8px 32px rgba(213,0,0,0.2);
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.439 0 0);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+  
+  html {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+}
+
+/* ===================================
+   PREVENÇÃO DE ZOOM MOBILE
+   Desabilita zoom para melhor UX
+   
+   IMPORTANTE:
+   - Meta viewport no index.html: user-scalable=no
+   - touch-action: manipulation previne zoom duplo toque
+   - font-size mínimo 16px em inputs previne zoom iOS
+   - JavaScript previne gestos de pinch/zoom
+   
+   EXCEÇÕES:
+   - Inputs e textareas permitem seleção de texto
+   - Elementos com .selectable-text permitem seleção
+   - Scroll containers permitem pan
+   =================================== */
+
+/* Previne zoom em todos os elementos interativos - ULTRA RESTRITIVO */
+html {
+  touch-action: manipulation !important;
+  -webkit-text-size-adjust: none !important;
+  -moz-text-size-adjust: none !important;
+  -ms-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+}
+
+body {
+  touch-action: manipulation !important;
+  -webkit-text-size-adjust: none !important;
+  -moz-text-size-adjust: none !important;
+  -ms-text-size-adjust: none !important;
+  text-size-adjust: none !important;
+}
+
+* {
+  touch-action: manipulation !important;
+  -webkit-text-size-adjust: 100% !important;
+  -ms-text-size-adjust: 100% !important;
+}
+
+/* Previne seleção de texto indesejada em mobile */
+@media (max-width: 1024px) {
+  body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Permite seleção em inputs e áreas editáveis */
+  input,
+  textarea,
+  [contenteditable],
+  [contenteditable="true"] {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+  }
+  
+  /* Permite seleção em elementos de texto específicos */
+  .selectable-text,
+  [data-selectable="true"],
+  code,
+  pre {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+}
+
+/* Previne zoom em inputs (iOS) mantendo legibilidade */
+@media (max-width: 1024px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Previne zoom automático no iOS */
+  }
+}
+
+/* Touch action específico para elementos deslizáveis */
+.scrollable,
+[role="tablist"],
+.overflow-x-auto,
+.overflow-y-auto {
+  touch-action: pan-x pan-y;
+}
+
+/* Touch action para scroll vertical apenas */
+.scroll-y-only {
+  touch-action: pan-y;
+}
+
+/* Touch action para scroll horizontal apenas */
+.scroll-x-only {
+  touch-action: pan-x;
+}
+
+/* ===================================
+   iOS SAFARI - PREVENÇÃO EXTRA
+   Safari é o mais teimoso com zoom
+   =================================== */
+
+@supports (-webkit-touch-callout: none) {
+  /* Detecta iOS Safari */
+  
+  html {
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
+  }
+  
+  body {
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
+  }
+  
+  /* Força touch-action em TODOS os elementos */
+  *, *::before, *::after {
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+  }
+  
+  /* Exceções para inputs */
+  input, textarea, select, [contenteditable] {
+    -webkit-user-select: text !important;
+    -webkit-touch-callout: default !important;
+    font-size: 16px !important;
+  }
+  
+  /* Previne zoom em áreas de scroll */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  [style*="overflow"] {
+    touch-action: pan-x pan-y !important;
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Animações Premium */
+@keyframes fade-in-out {
+  0% { opacity: 0; transform: translateY(-8px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes bounce-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.animate-fade-in-out {
+  animation: fade-in-out 3s ease-in-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s infinite;
+}
+
+.shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+.animate-bounce-scale {
+  animation: bounce-scale 0.3s ease-in-out;
+}
+
+/* Focus States Premium - WCAG AAA */
+*:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible {
+  box-shadow: 
+    0 0 0 3px white,
+    0 0 0 6px var(--ring);
+  outline: none;
+}
+
+/* Utility Classes Premium */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-porsche {
+  background: linear-gradient(135deg, #D50000 0%, #A80000 100%);
+}
+
+.gradient-text-porsche {
+  background: linear-gradient(135deg, #D50000 0%, #A80000 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.shadow-porsche {
+  box-shadow: var(--shadow-porsche);
+}
+
+.card-hover {
+  transition: all var(--transition-base);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Screen reader only - Acessibilidade */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ===================================
+   MOBILE-FIRST OPTIMIZATIONS
+   =================================== */
+
+/* Safe areas para dispositivos com notch */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-area-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Otimizações de touch */
+@media (hover: none) and (pointer: coarse) {
+  /* Toque em dispositivos móveis */
+  button, a, [role="button"] {
+    min-height: 44px; /* Área mínima de toque (Apple HIG) */
+    min-width: 44px;
+  }
+  
+  /* Remove hover states em touch devices */
+  .card-hover:hover {
+    transform: none;
+  }
+}
+
+/* Pull to refresh - desabilita em scroll containers */
+.no-overscroll {
+  overscroll-behavior: contain;
+}
+
+/* Scroll suave em mobile */
+@media (max-width: 1024px) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Mobile viewport - previne zoom em inputs - ATUALIZADO */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important; /* Previne zoom no iOS - IMPORTANTE: não usar menor que 16px */
+    min-height: 48px; /* Touch-friendly */
+    padding: 12px 16px;
+  }
+  
+  /* Buttons mais touch-friendly */
+  button:not(.icon-only) {
+    min-height: 48px;
+    padding: 12px 20px;
+    touch-action: manipulation; /* Previne zoom de duplo toque */
+  }
+  
+  /* Select mais touch-friendly */
+  select {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 16px !important;
+  }
+  
+  /* Links touch-friendly */
+  a {
+    touch-action: manipulation;
+  }
+  
+  /* Cards e elementos clicáveis */
+  [role="button"],
+  [tabindex]:not([tabindex="-1"]) {
+    touch-action: manipulation;
+  }
+}
+
+/* Bottom navigation spacing */
+@media (max-width: 1024px) {
+  .mobile-with-bottom-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Gestos Touch Premium */
+.touch-action-none {
+  touch-action: none;
+}
+
+.touch-action-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-action-pan-x {
+  touch-action: pan-x;
+}
+
+/* Active states para mobile */
+.mobile-active:active {
+  transform: scale(0.98);
+  opacity: 0.8;
+}
+
+/* Skeleton loading mobile-friendly */
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-mobile {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+/* Backdrop blur otimizado para mobile */
+@supports (backdrop-filter: blur(10px)) {
+  .glass-morphism-mobile {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
+
+/* Scrollbar customizada (webkit) */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+  }
+}
+
+/* Hide scrollbar em mobile */
+@media (max-width: 1024px) {
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Swipe indicators */
+.swipe-indicator {
+  position: relative;
+}
+
+.swipe-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+}
+
+/* Haptic feedback simulation */
+@media (hover: none) {
+  .haptic-light:active {
+    transform: scale(0.99);
+  }
+  
+  .haptic-medium:active {
+    transform: scale(0.97);
+  }
+  
+  .haptic-heavy:active {
+    transform: scale(0.95);
+  }
+}
+
+/* Optimized animations for mobile */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile-specific focus states */
+@media (max-width: 1024px) {
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  
+  button:focus-visible,
+  a:focus-visible {
+    box-shadow: 0 0 0 2px white, 0 0 0 4px var(--ring);
+  }
+}
+
+/* Status bar styling (PWA) */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .pwa-status-bar {
+    height: env(safe-area-inset-top);
+    background: var(--porsche-red);
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .mobile-with-bottom-nav {
+    padding-bottom: 56px; /* Menor em landscape */
+  }
+  
+  .modal-mobile {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* Dark mode support for mobile */
+@media (prefers-color-scheme: dark) {
+  .glass-morphism-mobile {
+    background: rgba(26, 26, 26, 0.9);
+  }
+}
+
+/* Utility classes mobile */
+.tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Mobile card optimizations */
+@media (max-width: 768px) {
+  .mobile-card {
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .mobile-card-compact {
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+}
+
+/* Loading states mobile */
+.mobile-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.mobile-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--porsche-red);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Fab button (floating action button) */
+.fab-mobile {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  right: 16px;
+  z-index: 30;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-mobile:active {
+  transform: scale(0.9);
+}
+
+@media (min-width: 1024px) {
+  .fab-mobile {
+    display: none;
+  }
+}
+
+/* ===================================
+   MOBILE NAVIGATION - PREMIUM UX/UI
+   Design moderno inspirado em apps de classe mundial
+   IMPORTANTE: Visível apenas em mobile (< 1024px)
+   =================================== */
+
+/* ===================================
+   ANIMATED HAMBURGER BUTTON
+   Transforma hambúrguer → X com animação suave
+   =================================== */
+
+.mobile-nav-hamburger {
+  position: fixed; /* Fixed, não interfere no layout */
+  width: 48px;
+  height: 48px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto; /* Garante que é clicável */
+  z-index: 60; /* Acima de tudo, mas não interfere no layout */
+}
+
+/* ===================================
+   CRÍTICO: OCULTA COMPLETAMENTE EM DESKTOP
+   Mobile Nav deve aparecer APENAS em mobile (< 1024px)
+   =================================== */
+@media (min-width: 1024px) {
+  /* Oculta botão hambúrguer */
+  .mobile-nav-hamburger {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  
+  /* Oculta todo o componente mobile nav */
+  .mobile-nav-header,
+  .mobile-nav-scroll,
+  .mobile-nav-footer,
+  .mobile-nav-item,
+  .mobile-nav-subitem,
+  .mobile-nav-section-title {
+    display: none !important;
+  }
+}
+
+.mobile-nav-hamburger:active {
+  transform: scale(0.95);
+  box-shadow: 
+    0 1px 4px rgba(0, 0, 0, 0.08),
+    0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.mobile-nav-hamburger:focus-visible {
+  outline: 2px solid #D50000;
+  outline-offset: 2px;
+}
+
+/* Container das linhas */
+.mobile-nav-hamburger-lines {
+  width: 20px;
+  height: 14px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Linhas individuais */
+.mobile-nav-hamburger-line {
+  width: 100%;
+  height: 2px;
+  background-color: #1F2937;
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+/* Estado aberto - transforma em X */
+.mobile-nav-hamburger.open .mobile-nav-hamburger-line:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.mobile-nav-hamburger.open .mobile-nav-hamburger-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.mobile-nav-hamburger.open .mobile-nav-hamburger-line:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* Hover state (apenas desktop) */
+@media (hover: hover) {
+  .mobile-nav-hamburger:hover {
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.12),
+      0 2px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* ===================================
+   MENU HEADER - GLASSMORPHISM
+   =================================== */
+
+.mobile-nav-header {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(250, 250, 250, 1) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===================================
+   SCROLL AREA - CUSTOM INDICATORS
+   =================================== */
+
+.mobile-nav-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+/* Scroll fade indicators */
+.mobile-nav-scroll::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0));
+  z-index: 10;
+  pointer-events: none;
+}
+
+.mobile-nav-scroll::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ===================================
+   SECTION TITLES
+   =================================== */
+
+.mobile-nav-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6B7280;
+  padding: 12px 16px 8px;
+  margin-top: 8px;
+}
+
+.mobile-nav-section-title:first-child {
+  margin-top: 0;
+}
+
+/* ===================================
+   MENU ITEMS - INTERACTIVE STATES
+   =================================== */
+
+.mobile-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1F2937;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple effect background */
+.mobile-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.04) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.mobile-nav-item:active::before {
+  opacity: 1;
+}
+
+/* Hover state (desktop only) */
+@media (hover: hover) {
+  .mobile-nav-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+/* Active state (pressed) */
+.mobile-nav-item:active {
+  transform: scale(0.98);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Selected state - Porsche Red Gradient */
+.mobile-nav-item.active {
+  background: linear-gradient(135deg, #D50000 0%, #B00000 100%);
+  color: #ffffff;
+  box-shadow: 
+    0 2px 8px rgba(213, 0, 0, 0.2),
+    0 1px 2px rgba(213, 0, 0, 0.1);
+}
+
+.mobile-nav-item.active::before {
+  display: none;
+}
+
+@media (hover: hover) {
+  .mobile-nav-item.active:hover {
+    background: linear-gradient(135deg, #E01010 0%, #C00000 100%);
+  }
+}
+
+.mobile-nav-item.active:active {
+  transform: scale(0.98);
+  background: linear-gradient(135deg, #C00000 0%, #A00000 100%);
+}
+
+/* Active indicator dot */
+.mobile-nav-active-indicator {
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+/* ===================================
+   SUBMENU - COLLAPSE ANIMATION
+   =================================== */
+
+.mobile-nav-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 16px;
+  padding-left: 12px;
+  border-left: 2px solid #E5E7EB;
+}
+
+.mobile-nav-submenu.open {
+  max-height: 500px;
+}
+
+.mobile-nav-subitem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4B5563;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  margin-bottom: 2px;
+}
+
+@media (hover: hover) {
+  .mobile-nav-subitem:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: #1F2937;
+  }
+}
+
+.mobile-nav-subitem:active {
+  transform: scale(0.98);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* ===================================
+   FOOTER - LOGOUT BUTTON
+   =================================== */
+
+.mobile-nav-footer {
+  padding: 16px 20px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    0deg,
+    rgba(250, 250, 250, 1) 0%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  box-shadow: 
+    0 -4px 12px rgba(0, 0, 0, 0.03),
+    0 -1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.mobile-nav-logout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #DC2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .mobile-nav-logout:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.3);
+  }
+}
+
+.mobile-nav-logout:active {
+  transform: scale(0.98);
+  background: rgba(220, 38, 38, 0.16);
+}
+
+/* ===================================
+   FADE IN ANIMATION
+   =================================== */
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===================================
+   ACCESSIBILITY
+   =================================== */
+
+/* Focus visible states */
+.mobile-nav-item:focus-visible,
+.mobile-nav-subitem:focus-visible,
+.mobile-nav-logout:focus-visible {
+  outline: 2px solid #D50000;
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-hamburger,
+  .mobile-nav-hamburger-line,
+  .mobile-nav-item,
+  .mobile-nav-subitem,
+  .mobile-nav-submenu,
+  .mobile-nav-logout {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* ===================================
+   DARK MODE SUPPORT (Future)
+   =================================== */
+
+@media (prefers-color-scheme: dark) {
+  .mobile-nav-hamburger {
+    background: #1F2937;
+  }
+  
+  .mobile-nav-hamburger-line {
+    background-color: #F9FAFB;
+  }
+}
+
+/* ===================================
+   LAYOUT MOBILE - OCUPAÇÃO 100% VIEWPORT
+   SOLUÇÃO DEFINITIVA E ULTRA-SIMPLES
+   =================================== */
+
+/* 
+  ESTRATÉGIA:
+  Mobile (< 1024px): Main ocupa 100vw, Sidebar oculta
+  Desktop (≥ 1024px): Main com margin-left 288px, Sidebar visível
+*/
+
+/* RESET BASE - Previne scroll horizontal */
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* MOBILE: < 1024px */
+@media (max-width: 1023px) {
+  /* 1. Container raiz - ZERO padding/margin */
+  body {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  #root {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  /* 2. App container (div flex principal) */
+  #root > div {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  /* 3. Sidebar OCULTA (não ocupa espaço) */
+  aside {
+    display: none !important;
+    width: 0 !important;
+    flex: 0 0 0 !important;
+  }
+  
+  /* 4. Main OCUPA TUDO */
+  main {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  
+  /* 5. Filhos diretos do main também respeitam 100vw */
+  main > * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* 6. Containers internos não ultrapassam */
+  main [class*="max-w-7xl"],
+  main [class*="max-w-6xl"],
+  main [class*="max-w-5xl"],
+  main [class*="max-w-4xl"] {
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* 7. Padding horizontal simétrico em mobile */
+  main > div {
+    padding-left: 0.5rem !important; /* 8px - igual ao padding-right */
+    padding-right: 0.5rem !important; /* 8px */
+  }
+  
+  /* 9. DEBUG: Adicione .debug-mobile-layout para visualizar bordas */
+  .debug-mobile-layout body {
+    outline: 2px solid blue !important;
+  }
+  
+  .debug-mobile-layout #root {
+    outline: 2px solid green !important;
+  }
+  
+  .debug-mobile-layout #root > div {
+    outline: 2px solid yellow !important;
+  }
+  
+  .debug-mobile-layout aside {
+    outline: 2px solid red !important;
+  }
+  
+  .debug-mobile-layout main {
+    outline: 2px solid purple !important;
+  }
+  
+  .debug-mobile-layout main > div {
+    outline: 2px solid orange !important;
+  }
+}
+
+/* DESKTOP: ≥ 1024px */
+@media (min-width: 1024px) {
+  /* Sidebar visível (Tailwind lg:flex) */
+  aside {
+    display: flex !important;
+  }
+  
+  /* Main com margem para sidebar (Tailwind lg:ml-72) */
+  main {
+    margin-left: 18rem !important; /* 288px */
+  }
+}
+
+/* Garantir que cards não ultrapassem viewport */
+@media (max-width: 1024px) {
+  [class*="max-w-7xl"],
+  [class*="max-w-6xl"],
+  [class*="max-w-5xl"],
+  [class*="max-w-4xl"] {
+    max-width: 100% !important;
+  }
+}
+
+/* Toast notifications mobile */
+@media (max-width: 768px) {
+  [data-sonner-toast] {
+    margin: 0 8px;
+    max-width: calc(100vw - 16px);
+  }
+}
+
+/* Modal responsiveness */
+@media (max-width: 768px) {
+  [role="dialog"] {
+    max-width: 100vw;
+    max-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  /* Modais menores podem manter bordas arredondadas */
+  [role="dialog"].dialog-compact {
+    max-width: calc(100vw - 32px);
+    max-height: 90vh;
+    margin: 16px;
+    border-radius: 16px;
+    width: auto;
+    height: auto;
+  }
+}
+
+/* Table scroll horizontal com indicadores */
+@media (max-width: 1024px) {
+  .table-container {
+    position: relative;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  .table-container::before,
+  .table-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.3s;
+  }
+  
+  .table-container::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(255,255,255,1), rgba(255,255,255,0));
+  }
+  
+  .table-container::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(255,255,255,1), rgba(255,255,255,0));
+  }
+  
+  .table-container.scroll-start::before {
+    opacity: 0;
+  }
+  
+  .table-container.scroll-end::after {
+    opacity: 0;
+  }
+}
+
+/* Grid responsivo mobile */
+@media (max-width: 640px) {
+  .grid-mobile-1 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .grid-mobile-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Spacing mobile */
+@media (max-width: 768px) {
+  .mobile-p-4 {
+    padding: 16px;
+  }
+  
+  .mobile-p-3 {
+    padding: 12px;
+  }
+  
+  .mobile-px-4 {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .mobile-py-4 {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  
+  .mobile-gap-3 {
+    gap: 12px;
+  }
+  
+  .mobile-gap-4 {
+    gap: 16px;
+  }
+}
+
+/* Cards compactos mobile */
+@media (max-width: 768px) {
+  .card-stats {
+    padding: 16px !important;
+  }
+  
+  .card-stats h3 {
+    font-size: 14px;
+  }
+  
+  .card-stats .stat-value {
+    font-size: 24px;
+  }
+}
+
+/* ===================================
+   UTILITY: PADDING COMPACTO MOBILE
+   Use esta classe em containers que precisam maximizar espaço horizontal
+   Exemplo: <div className="mobile-compact-padding">
+   =================================== */
+.mobile-compact-padding {
+  padding: 2rem; /* Desktop padrão */
+}
+
+@media (max-width: 1024px) {
+  .mobile-compact-padding {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-compact-padding {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .mobile-compact-padding {
+    padding: 0.5rem; /* 8px - máximo aproveitamento */
+  }
+}
+
+/* Typography mobile */
+@media (max-width: 768px) {
+  h1 {
+    font-size: var(--text-xl) !important;
+  }
+  
+  h2 {
+    font-size: var(--text-lg) !important;
+  }
+  
+  h3 {
+    font-size: var(--text-base) !important;
+  }
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Input with icon utilities */
+/* Para inputs com ícones posicionados à esquerda */
+.input-with-icon {
+  padding-left: 3rem !important; /* 48px - espaço equilibrado para ícone 20px + margem */
+}
+
+.input-with-icon-lg {
+  padding-left: 3.5rem !important; /* 56px - para ícones maiores (24px+) */
+}
+
+/* Para ícones dentro de inputs - previne cliques acidentais */
+.input-icon {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ===================================
+   BARCODE SCANNER FULLSCREEN
+   Experiência similar a apps bancários
+   =================================== */
+
+/* Container fullscreen */
+.scanner-fullscreen-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000000;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none; /* Previne qualquer gesto, inclusive zoom */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.scanner-fullscreen-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Vídeo da câmera - SEM RESTRIÇÕES para não afetar a leitura */
+.scanner-video-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.scanner-video-element {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* O Html5Qrcode gerencia o vídeo internamente - deixe-o trabalhar */
+.scanner-video-element video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain !important; /* CONTAIN, não COVER - preserva toda a imagem */
+}
+
+/* Garante que o canvas de overlay do Html5Qrcode está visível */
+.scanner-video-element canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain !important;
+}
+
+/* Container interno do Html5Qrcode */
+.scanner-video-element > div {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Overlay escurecido */
+.scanner-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.scanner-overlay-top {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.scanner-overlay-bottom {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+/* Container da guia central */
+.scanner-guide-container {
+  display: flex;
+  flex-direction: row;
+  height: 200px; /* Altura fixa para a área de scan */
+}
+
+.scanner-overlay-left {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.scanner-overlay-right {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+/* Guia de posicionamento do código */
+.scanner-guide-box {
+  position: relative;
+  width: 500px; /* Largura generosa em landscape */
+  height: 200px; /* Altura generosa */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.5); /* Escurece ao redor */
+}
+
+/* Cantos decorativos da guia */
+.scanner-corner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: #00A86B;
+  border-style: solid;
+}
+
+.scanner-corner-tl {
+  top: -3px;
+  left: -3px;
+  border-width: 4px 0 0 4px;
+  border-radius: 16px 0 0 0;
+}
+
+.scanner-corner-tr {
+  top: -3px;
+  right: -3px;
+  border-width: 4px 4px 0 0;
+  border-radius: 0 16px 0 0;
+}
+
+.scanner-corner-bl {
+  bottom: -3px;
+  left: -3px;
+  border-width: 0 0 4px 4px;
+  border-radius: 0 0 0 16px;
+}
+
+.scanner-corner-br {
+  bottom: -3px;
+  right: -3px;
+  border-width: 0 4px 4px 0;
+  border-radius: 0 0 16px 0;
+}
+
+/* Linha de scan animada */
+.scanner-line {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #00A86B 30%,
+    #00A86B 70%,
+    transparent
+  );
+  box-shadow: 0 0 20px #00A86B, 0 0 40px #00A86B;
+  animation: scanner-line-move 2s ease-in-out infinite;
+}
+
+@keyframes scanner-line-move {
+  0%, 100% {
+    top: 20%;
+    opacity: 1;
+  }
+  50% {
+    top: 80%;
+    opacity: 0.8;
+  }
+}
+
+/* Overlay de sucesso */
+.scanner-success-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 168, 107, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  animation: scanner-success-pulse 0.5s ease-out;
+}
+
+@keyframes scanner-success-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scanner-success-icon {
+  animation: scanner-success-check 0.5s ease-out 0.2s both;
+}
+
+@keyframes scanner-success-check {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Instruções */
+.scanner-instructions {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: none; /* Oculto em portrait */
+}
+
+.scanner-instruction-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Controles na parte inferior */
+.scanner-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.8) 50%,
+    transparent 100%
+  );
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  display: none; /* Oculto em portrait */
+}
+
+.scanner-control-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  pointer-events: auto;
+  min-width: 100px;
+}
+
+.scanner-control-button:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.scanner-close-button {
+  background: rgba(213, 0, 0, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.scanner-close-button:active {
+  background: rgba(213, 0, 0, 1);
+}
+
+.scanner-control-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Status indicator */
+.scanner-status {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.scanner-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 168, 107, 0.2);
+  border: 1px solid rgba(0, 168, 107, 0.5);
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+.scanner-status-text {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Instrução para girar - aparece em portrait */
+.scanner-rotate-instruction {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  display: none; /* Por padrão oculto */
+}
+
+/* Tela de erro */
+.scanner-error-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.scanner-error-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.scanner-error-icon {
+  width: 64px;
+  height: 64px;
+  color: #D50000;
+  margin: 0 auto 24px;
+}
+
+.scanner-error-title {
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.scanner-error-message {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.scanner-error-button {
+  width: 100%;
+  background: #D50000;
+  color: white;
+  border: none;
+}
+
+/* ===================================
+   LANDSCAPE MODE (Modo Horizontal)
+   =================================== */
+@media (orientation: landscape) {
+  /* Mostra controles e instruções */
+  .scanner-instructions {
+    display: flex;
+    justify-content: center;
+  }
+  
+  .scanner-controls {
+    display: flex;
+  }
+  
+  /* Oculta instrução de rotação */
+  .scanner-rotate-instruction {
+    display: none !important;
+  }
+  
+  /* Mantém tamanho generoso da guia para landscape */
+  .scanner-guide-box {
+    width: 520px;
+    height: 200px;
+  }
+  
+  .scanner-guide-container {
+    height: 200px;
+  }
+}
+
+/* ===================================
+   PORTRAIT MODE (Modo Vertical)
+   =================================== */
+@media (orientation: portrait) {
+  /* Mostra instrução para girar */
+  .scanner-rotate-instruction {
+    display: flex !important;
+  }
+  
+  /* Oculta controles e instruções */
+  .scanner-instructions {
+    display: none;
+  }
+  
+  .scanner-controls {
+    display: none;
+  }
+  
+  /* Ajusta guia para portrait (caso usuário ignore) */
+  .scanner-guide-box {
+    width: 280px;
+    height: 200px;
+  }
+  
+  .scanner-guide-container {
+    height: 200px;
+  }
+}
+
+/* Mobile específico */
+@media (max-width: 768px) {
+  .scanner-control-button {
+    min-width: 80px;
+    padding: 10px 16px;
+  }
+  
+  .scanner-control-label {
+    font-size: 11px;
+  }
+  
+  .scanner-instruction-text {
+    font-size: 13px;
+  }
+}
+
+/* Tablets */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  .scanner-guide-box {
+    width: 600px;
+    height: 180px;
+  }
+  
+  .scanner-guide-container {
+    height: 180px;
+  }
+}
+
+/* Tabs responsivas - Mobile First */
+@media (max-width: 640px) {
+  /* Tabs com scroll horizontal suave */
+  [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    touch-action: pan-x; /* Permite scroll horizontal, previne zoom */
+  }
+  
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Garante que os tabs não quebrem */
+  [role="tab"] {
+    white-space: nowrap;
+    flex-shrink: 0;
+    touch-action: manipulation; /* Previne zoom de duplo toque */
+  }
+  
+  /* Padding adequado para touch */
+  [role="tab"] {
+    padding: 8px 12px;
+    min-width: fit-content;
+  }
+}
+
+/* Indicador visual de scroll nas tabs */
+@media (max-width: 640px) {
+  .tabs-scroll-container {
+    position: relative;
+  }
+  
+  .tabs-scroll-container::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, rgba(243, 244, 246, 1), rgba(243, 244, 246, 0));
+    pointer-events: none;
+  }
+  
+  .tabs-scroll-container.scroll-end::after {
+    display: none;
+  }
+}
+
+/* ===================================
+   RECHARTS GRAPH SCROLL FIX
+   Corrige scroll invisível em gráficos Recharts
+   =================================== */
+
+/* Previne scroll fantasma no ResponsiveContainer do Recharts */
+.recharts-responsive-container {
+  touch-action: manipulation !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Wrapper SVG do Recharts - previne scroll */
+.recharts-wrapper {
+  touch-action: manipulation !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Surface SVG - isola conteúdo */
+.recharts-surface {
+  touch-action: manipulation !important;
+  overflow: visible !important;
+}
+
+/* Tooltip do Recharts - permite interação */
+.recharts-tooltip-wrapper {
+  touch-action: auto !important;
+  pointer-events: auto !important;
+}
+
+/* Legend do Recharts */
+.recharts-legend-wrapper {
+  touch-action: manipulation !important;
+  overflow: visible !important;
+}
+
+/* Mobile específico - ULTRA RESTRITIVO */
+@media (max-width: 1024px) {
+  /* Container pai dos gráficos */
+  .recharts-responsive-container {
+    -webkit-overflow-scrolling: auto !important;
+    overscroll-behavior: contain !important;
+  }
+  
+  /* Previne zoom e scroll em SVG */
+  .recharts-surface {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+}
+
+/* Wrapper customizado para gráficos - aplicar nos divs pais */
+.chart-wrapper-no-scroll {
+  contain: strict;
+  overflow: hidden;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: auto;
+  overscroll-behavior: contain;
+}
+
+/* Cards que contêm gráficos */
+.chart-card-container {
+  contain: layout style paint;
+  will-change: auto;
+  overflow: hidden;
+}
+
+/* Tabelas com scroll horizontal controlado */
+.table-scroll-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 1024px) {
+  .table-scroll-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .table-scroll-container::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Previne scroll aninhado problemático */
+.prevent-nested-scroll {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* Isola seções do Reports */
+.reports-section-isolated {
+  contain: layout style;
+  will-change: auto;
+  isolation: isolate;
+}

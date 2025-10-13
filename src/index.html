@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  
+  <!-- Meta viewport otimizada para mobile - DESABILITA ZOOM - ULTRA RESTRITIVO -->
+  <meta 
+    name="viewport" 
+    content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover, shrink-to-fit=no"
+  />
+  
+  <!-- Meta tags para PWA -->
+  <meta name="theme-color" content="#D50000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Porsche Cup" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  
+  <!-- Permissions Policy - PERMITE câmera e fullscreen -->
+  <!-- Sintaxe corrigida: allow="camera; fullscreen" -->
+  <meta http-equiv="Permissions-Policy" content="camera=(self), fullscreen=(self)" />
+  
+  <!-- Meta tags SEO -->
+  <meta name="description" content="Sistema de Gestão de Pneus - Porsche Cup Brasil" />
+  <meta name="author" content="Porsche Cup Brasil" />
+  
+  <!-- Previne zoom em elementos específicos iOS -->
+  <meta name="format-detection" content="telephone=no" />
+  
+  <!-- Favicon e Icons -->
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+  
+  <title>Porsche Cup Brasil - Gestão de Pneus</title>
+  
+  <!-- Previne zoom adicional via CSS inline -->
+  <style>
+    /* Previne zoom global - ULTRA RESTRITIVO */
+    html {
+      touch-action: manipulation !important;
+      -ms-touch-action: manipulation !important;
+      overflow-x: hidden !important;
+      -webkit-text-size-adjust: none !important;
+      -moz-text-size-adjust: none !important;
+      -ms-text-size-adjust: none !important;
+      text-size-adjust: none !important;
+    }
+    
+    body {
+      touch-action: manipulation !important;
+      -ms-touch-action: manipulation !important;
+      -webkit-user-select: none !important;
+      -webkit-touch-callout: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+      overflow-x: hidden !important;
+    }
+    
+    * {
+      touch-action: manipulation !important;
+      -ms-touch-action: manipulation !important;
+    }
+    
+    /* Previne zoom em todos os inputs */
+    input, select, textarea {
+      font-size: 16px !important;
+      touch-action: manipulation !important;
+    }
+    
+    /* Loading screen inicial */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #D50000 0%, #A80000 100%);
+      z-index: 99999;
+      transition: opacity 0.3s ease-out;
+    }
+    
+    #loading-screen.loaded {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Previne seleção de texto indesejada em mobile */
+    body {
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Permite seleção em inputs e áreas de texto */
+    input,
+    textarea,
+    [contenteditable] {
+      -webkit-user-select: text !important;
+      -webkit-touch-callout: default !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-spinner"></div>
+  </div>
+  
+  <!-- React Root -->
+  <div id="root"></div>
+  
+  <!-- Remove loading screen quando React carregar -->
+  <script>
+    // Remove loading screen quando o DOM estiver pronto
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+          loadingScreen.classList.add('loaded');
+          setTimeout(function() {
+            loadingScreen.remove();
+          }, 300);
+        }
+      }, 500);
+    });
+    
+    // ===================================
+    // PREVENÇÃO ULTRA-ROBUSTA DE ZOOM
+    // ===================================
+    
+    // 1. Previne zoom de duplo toque globalmente
+    let lastTouchEnd = 0;
+    let lastTouchTime = 0;
+    
+    document.addEventListener('touchend', function(event) {
+      const now = Date.now();
+      const timeSinceLastTouch = now - lastTouchEnd;
+      
+      // Previne duplo toque (< 300ms entre toques)
+      if (timeSinceLastTouch <= 300 && timeSinceLastTouch > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+      
+      lastTouchEnd = now;
+    }, { passive: false, capture: true });
+    
+    // 2. Previne pinch-to-zoom (gesto de pinça)
+    document.addEventListener('gesturestart', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }, { passive: false, capture: true });
+    
+    document.addEventListener('gesturechange', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }, { passive: false, capture: true });
+    
+    document.addEventListener('gestureend', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }, { passive: false, capture: true });
+    
+    // 3. Previne zoom via touchmove com múltiplos dedos
+    let touchCount = 0;
+    
+    document.addEventListener('touchstart', function(event) {
+      touchCount = event.touches.length;
+      if (touchCount > 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, { passive: false, capture: true });
+    
+    document.addEventListener('touchmove', function(event) {
+      // Bloqueia movimento com 2+ dedos (pinch zoom)
+      if (event.touches && event.touches.length > 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, { passive: false, capture: true });
+    
+    // 4. Previne zoom via scroll do mouse (Ctrl + scroll)
+    document.addEventListener('wheel', function(event) {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, { passive: false, capture: true });
+    
+    // 5. Previne zoom via teclado (Ctrl + / Ctrl -)
+    document.addEventListener('keydown', function(event) {
+      if ((event.ctrlKey || event.metaKey) && 
+          (event.key === '+' || event.key === '-' || event.key === '=' || event.key === '0')) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    }, { passive: false, capture: true });
+    
+    // 6. Detecta e reverte mudanças de zoom via visualViewport
+    if (window.visualViewport) {
+      let lastScale = window.visualViewport.scale;
+      
+      window.visualViewport.addEventListener('resize', function() {
+        const currentScale = window.visualViewport.scale;
+        
+        // Se o scale mudou, tenta reverter (silencioso)
+        if (Math.abs(currentScale - lastScale) > 0.01) {
+          // Força viewport para escala 1
+          const viewport = document.querySelector('meta[name="viewport"]');
+          if (viewport) {
+            viewport.setAttribute('content', 
+              'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover, shrink-to-fit=no'
+            );
+          }
+          
+          lastScale = 1;
+        }
+      });
+    }
+    
+    // 7. Força reset de zoom periodicamente (silencioso)
+    setInterval(function() {
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        const content = viewport.getAttribute('content');
+        if (!content.includes('maximum-scale=1')) {
+          viewport.setAttribute('content', 
+            'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover, shrink-to-fit=no'
+          );
+          // Reset silencioso
+        }
+      }
+    }, 1000);
+    
+    // 8. Previne zoom em foco de inputs (iOS Safari)
+    document.addEventListener('focus', function(event) {
+      if (event.target.tagName === 'INPUT' || 
+          event.target.tagName === 'TEXTAREA' || 
+          event.target.tagName === 'SELECT') {
+        // Garante que o input tem font-size >= 16px
+        const computedStyle = window.getComputedStyle(event.target);
+        const fontSize = parseFloat(computedStyle.fontSize);
+        
+        if (fontSize < 16) {
+          event.target.style.fontSize = '16px';
+        }
+      }
+    }, true);
+  </script>
+  
+  <script type="module" src="/App.tsx"></script>
+</body>
+</html>
