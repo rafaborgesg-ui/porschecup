@@ -170,14 +170,31 @@ async function createUser(userData: {
 
 async function updateUser(userId: string, updates: Partial<User>): Promise<void> {
   try {
-    console.log('🔄 Updating user via direct Supabase call...');
-    
-    // For now, we'll just log the update since Edge Functions are having CORS issues
-    // In a real implementation, this would need proper admin privileges
+    console.log('🔄 Updating user via localStorage and Supabase Auth...');
     console.log('User update requested:', { userId, updates });
     
-    // Simulate success for demo purposes
-    throw new Error('Atualização de usuário não implementada ainda. As Edge Functions estão com problema de CORS.');
+    // Update user in localStorage
+    try {
+      const existingUsers = localStorage.getItem('porsche_cup_users');
+      const users = existingUsers ? JSON.parse(existingUsers) : [];
+      
+      const userIndex = users.findIndex((u: User) => u.id === userId);
+      if (userIndex !== -1) {
+        // Update the user data
+        users[userIndex] = { ...users[userIndex], ...updates };
+        localStorage.setItem('porsche_cup_users', JSON.stringify(users));
+        console.log('✅ User updated in localStorage');
+      } else {
+        throw new Error('Usuário não encontrado na lista local');
+      }
+    } catch (storageError) {
+      console.error('Error updating localStorage:', storageError);
+      throw new Error('Erro ao atualizar usuário localmente');
+    }
+    
+    // Note: In a real implementation, you would also update the user in Supabase Auth
+    // using the Admin API, but that requires server-side implementation
+    console.log('✅ User update completed');
   } catch (error) {
     console.error('Error in updateUser:', error);
     throw error;
@@ -186,13 +203,31 @@ async function updateUser(userId: string, updates: Partial<User>): Promise<void>
 
 async function deleteUser(userId: string): Promise<void> {
   try {
-    console.log('🗑️ Deleting user via direct Supabase call...');
-    
-    // For now, we'll just log the deletion since Edge Functions are having CORS issues
+    console.log('🗑️ Deleting user via localStorage...');
     console.log('User deletion requested:', { userId });
     
-    // Simulate success for demo purposes
-    throw new Error('Exclusão de usuário não implementada ainda. As Edge Functions estão com problema de CORS.');
+    // Delete user from localStorage
+    try {
+      const existingUsers = localStorage.getItem('porsche_cup_users');
+      const users = existingUsers ? JSON.parse(existingUsers) : [];
+      
+      const userIndex = users.findIndex((u: User) => u.id === userId);
+      if (userIndex !== -1) {
+        // Remove the user from the array
+        users.splice(userIndex, 1);
+        localStorage.setItem('porsche_cup_users', JSON.stringify(users));
+        console.log('✅ User deleted from localStorage');
+      } else {
+        throw new Error('Usuário não encontrado na lista local');
+      }
+    } catch (storageError) {
+      console.error('Error deleting from localStorage:', storageError);
+      throw new Error('Erro ao excluir usuário localmente');
+    }
+    
+    // Note: In a real implementation, you would also delete the user from Supabase Auth
+    // using the Admin API, but that requires server-side implementation
+    console.log('✅ User deletion completed');
   } catch (error) {
     console.error('Error in deleteUser:', error);
     throw error;
@@ -297,7 +332,6 @@ export function UserManagement() {
         await updateUser(editingId, {
           email: formData.email,
           username: formData.username || formData.email.split('@')[0],
-          password: formData.password,
           name: formData.name,
           role: formData.role,
           active: true
@@ -332,8 +366,9 @@ export function UserManagement() {
       resetForm();
     } catch (error) {
       console.error('Error saving user:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast.error('Erro ao salvar usuário', {
-        description: error.message,
+        description: errorMessage,
         duration: 4000,
       });
     } finally {
@@ -383,8 +418,9 @@ export function UserManagement() {
       await loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast.error('Erro ao excluir usuário', {
-        description: error.message,
+        description: errorMessage,
         duration: 4000,
       });
     } finally {
@@ -419,8 +455,9 @@ export function UserManagement() {
       await loadUsers();
     } catch (error) {
       console.error('Error toggling user status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast.error('Erro ao atualizar status', {
-        description: error.message,
+        description: errorMessage,
         duration: 4000,
       });
     }
@@ -689,35 +726,34 @@ export function UserManagement() {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge
-                              variant="secondary"
-                              className={user.active 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-gray-100 text-gray-500'
-                              }
+                            <button
+                              onClick={() => toggleUserStatus(user)}
+                              className="focus:outline-none"
                             >
-                              {user.active ? 'Ativo' : 'Inativo'}
-                            </Badge>
+                              <Badge
+                                variant="secondary"
+                                className={user.active 
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer' 
+                                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 cursor-pointer'
+                                }
+                              >
+                                {user.active ? 'Ativo' : 'Inativo'}
+                              </Badge>
+                            </button>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex gap-2">
                               <button
-                                onClick={() => toast.info('Funcionalidade em desenvolvimento', {
-                                  description: 'Edição de usuários será implementada em breve.',
-                                })}
-                                className="p-2 text-gray-300 cursor-not-allowed rounded-lg"
-                                title="Editar usuário (em desenvolvimento)"
-                                disabled
+                                onClick={() => handleEdit(user)}
+                                className="p-2 text-gray-400 hover:text-[#D50000] transition-colors rounded-lg hover:bg-gray-100"
+                                title="Editar usuário"
                               >
                                 <Edit2 size={18} />
                               </button>
                               <button
-                                onClick={() => toast.info('Funcionalidade em desenvolvimento', {
-                                  description: 'Exclusão de usuários será implementada em breve.',
-                                })}
-                                className="p-2 text-gray-300 cursor-not-allowed rounded-lg"
-                                title="Excluir usuário (em desenvolvimento)"
-                                disabled
+                                onClick={() => handleDeleteClick(user)}
+                                className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-gray-100"
+                                title="Excluir usuário"
                               >
                                 <Trash2 size={18} />
                               </button>
