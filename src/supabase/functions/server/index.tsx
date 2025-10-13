@@ -20,13 +20,39 @@ const supabase = createClient(
 
 // CORS PRIMEIRO - antes de tudo
 app.use('*', cors({
-  origin: '*',
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://porschecup.vercel.app',
+    'https://porschecup-4wcz45zi9-rafaels-projects-d8a48143.vercel.app',
+    /https:\/\/.*\.vercel\.app$/
+  ],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  allowHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Accept', 
+    'X-Requested-With',
+    'apikey',
+    'X-Client-Info'
+  ],
   exposeHeaders: ['Content-Length', 'X-Request-Id'],
   maxAge: 86400,
   credentials: false,
 }));
+
+// Handle OPTIONS requests explicitly
+app.options('*', (c) => {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, X-Requested-With, apikey, X-Client-Info',
+      'Access-Control-Max-Age': '86400',
+    }
+  });
+});
 
 app.use('*', logger(console.log));
 
