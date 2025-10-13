@@ -1,8 +1,8 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from './info';
 
-const supabaseUrl = `https://${projectId}.supabase.co`;
-const supabaseAnonKey = publicAnonKey;
+// Use environment variables in production, fallback to hardcoded values for development
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://nflgqugaabtxzifyhjor.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mbGdxdWdhYWJ0eHppZnloam9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNjU4MDQsImV4cCI6MjA3NTg0MTgwNH0.V6Is77Z0AfcY1K3H0b2yr5HDCGKX8OAHdx6bUnZYzOA';
 
 // Singleton instance
 let supabaseInstance: any = null;
