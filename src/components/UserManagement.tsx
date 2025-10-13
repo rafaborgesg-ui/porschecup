@@ -185,7 +185,30 @@ async function updateUser(userId: string, updates: Partial<User>): Promise<void>
         localStorage.setItem('porsche_cup_users', JSON.stringify(users));
         console.log('✅ User updated in localStorage');
       } else {
-        throw new Error('Usuário não encontrado na lista local');
+        // User not found in localStorage, this might be the current authenticated user
+        // Let's get the current user from Supabase and add/update it
+        const supabase = createClient();
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (currentUser && currentUser.id === userId) {
+          // This is the current authenticated user, add it to localStorage with updates
+          const newUser: User = {
+            id: currentUser.id,
+            email: currentUser.email || '',
+            name: currentUser.user_metadata?.name || '',
+            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || '',
+            role: currentUser.user_metadata?.role || 'operator',
+            active: true,
+            createdAt: currentUser.created_at || new Date().toISOString(),
+            ...updates // Apply the updates
+          };
+          
+          users.push(newUser);
+          localStorage.setItem('porsche_cup_users', JSON.stringify(users));
+          console.log('✅ Current user added to localStorage with updates');
+        } else {
+          throw new Error('Usuário não encontrado na lista local e não é o usuário atual');
+        }
       }
     } catch (storageError) {
       console.error('Error updating localStorage:', storageError);
