@@ -93,51 +93,64 @@ export function isAndroid(): boolean {
 /**
  * Adiciona o app à tela inicial (Android/Chrome/Edge)
  */
-export function addToHomeScreen() {
+export const addToHomeScreen = async (): Promise<boolean> => {
   console.log('🚀 Tentando instalar PWA...');
   
-  // Verifica se já está rodando como PWA
-  if (isPWA()) {
-    console.log('✅ App já está instalado como PWA');
-    return;
-  }
-  
-  // Para iOS, mostra instruções
-  if (isIOS()) {
-    console.log('🍎 iOS: Mostrando instruções de instalação');
-    // O componente PWAInstallPrompt já cuida das instruções para iOS
-    return;
-  }
-  
-  // Para Android/Chrome/Edge
   const deferredPrompt = (window as any).deferredPrompt;
   
   if (deferredPrompt) {
-    console.log('📱 Executando prompt de instalação nativo');
-    deferredPrompt.prompt();
-    
-    deferredPrompt.userChoice.then((choiceResult: any) => {
-      console.log('🎯 Resposta do usuário:', choiceResult.outcome);
-      if (choiceResult.outcome === 'accepted') {
-        console.log('✅ Usuário aceitou adicionar à tela inicial');
-        // Remove o prompt dismissed para não mostrar novamente
-        localStorage.removeItem('pwa-install-dismissed');
+    console.log('📱 Usando prompt nativo');
+    try {
+      const promptResult = await deferredPrompt.prompt();
+      console.log('📤 Prompt resultado:', promptResult);
+      
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('👤 Escolha do usuário:', outcome);
+      
+      if (outcome === 'accepted') {
+        console.log('✅ Usuário aceitou instalar o PWA');
+        return true;
       } else {
-        console.log('❌ Usuário rejeitou a instalação');
-        // Não marca como dismissed para permitir tentar novamente mais tarde
+        console.log('❌ Usuário rejeitou instalar o PWA');
+        return false;
       }
-      (window as any).deferredPrompt = null;
-    }).catch((error: any) => {
-      console.error('❌ Erro no prompt de instalação:', error);
-    });
-  } else {
-    console.log('⚠️ beforeinstallprompt não disponível');
-    // Pode ser que o usuário já tenha instalado ou o browser não suporte
-    if ('serviceWorker' in navigator) {
-      console.log('💡 Dica: Procure pelo ícone de instalação na barra de endereços');
+    } catch (error) {
+      console.error('Erro ao mostrar prompt de instalação:', error);
+      // Não retorna false, continua para fallback
     }
   }
-}
+  
+  // Fallback para todos os navegadores
+  console.log('ℹ️ Prompt nativo não disponível, mostrando instruções');
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  let instructions = '';
+  let title = 'Instalar Porsche Cup';
+  
+  if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+    instructions = 'Para instalar no iOS:\n\n1. Toque no botão de compartilhar (□↑)\n2. Role para baixo e selecione "Adicionar à Tela de Início"\n3. Toque em "Adicionar"';
+  } else if (userAgent.includes('android')) {
+    instructions = 'Para instalar no Android:\n\n1. Toque no menu (⋮) do navegador\n2. Selecione "Adicionar à tela inicial" ou "Instalar app"\n3. Confirme a instalação';
+  } else if (userAgent.includes('chrome')) {
+    instructions = 'Para instalar no Chrome Desktop:\n\n1. Procure o ícone de instalação (⊞) na barra de endereços\n2. Clique em "Instalar"\n\nOu:\n1. Menu (⋮) > "Instalar Porsche Cup..."\n2. Confirme a instalação';
+  } else if (userAgent.includes('edge')) {
+    instructions = 'Para instalar no Edge:\n\n1. Menu (...) > "Aplicativos"\n2. Clique em "Instalar este site como um aplicativo"\n3. Confirme a instalação';
+  } else {
+    instructions = 'Para uma melhor experiência:\n\n• Use Chrome ou Edge para instalação automática\n• Em dispositivos móveis, use o menu do navegador\n• Procure por opções como "Adicionar à tela inicial" ou "Instalar app"';
+  }
+  
+  // Usa confirm em vez de alert para melhor UX
+  const shouldProceed = confirm(`${title}\n\n${instructions}\n\nDeseja continuar com as instruções?`);
+  
+  if (shouldProceed && (userAgent.includes('chrome') || userAgent.includes('edge'))) {
+    // Para desktop, abre em nova aba para facilitar a instalação
+    setTimeout(() => {
+      console.log('💡 Dica: Procure o ícone de instalação na barra de endereços');
+    }, 1000);
+  }
+  
+  return shouldProceed;
+};
 
 /**
  * Verifica suporte a recursos PWA
@@ -251,8 +264,9 @@ export function setupInstallPrompt() {
     return;
   }
 
-  // Para Android/Chrome/Edge
+  // Para Android/Chrome/Edge/Desktop
   let deferredPrompt: any = null;
+  let promptShown = false;
   
   window.addEventListener('beforeinstallprompt', (e) => {
     console.log('📱 beforeinstallprompt capturado!');
@@ -261,12 +275,13 @@ export function setupInstallPrompt() {
     (window as any).deferredPrompt = e;
     
     // Dispara evento customizado para mostrar botão de instalação
-    setTimeout(() => {
-      if (!localStorage.getItem('pwa-install-dismissed')) {
-        console.log('🎯 Disparando evento pwa-installable');
+    if (!promptShown && !localStorage.getItem('pwa-install-dismissed')) {
+      console.log('🎯 Disparando evento pwa-installable');
+      promptShown = true;
+      setTimeout(() => {
         window.dispatchEvent(new Event('pwa-installable'));
-      }
-    }, 2000);
+      }, 1000);
+    }
   });
   
   window.addEventListener('appinstalled', () => {
@@ -274,20 +289,23 @@ export function setupInstallPrompt() {
     deferredPrompt = null;
     (window as any).deferredPrompt = null;
     localStorage.removeItem('pwa-install-dismissed');
+    promptShown = false;
   });
   
-  // Fallback: se não receber beforeinstallprompt em 5 segundos, tenta mostrar anyway
+  // Fallback mais rápido: se não receber beforeinstallprompt em 3 segundos
   setTimeout(() => {
-    if (!deferredPrompt && !isPWA() && isCompatible && !localStorage.getItem('pwa-install-dismissed')) {
+    if (!deferredPrompt && !isPWA() && isCompatible && !localStorage.getItem('pwa-install-dismissed') && !promptShown) {
       console.log('⚠️ Fallback: Mostrando prompt sem beforeinstallprompt');
+      console.log('💡 No desktop Chrome, procure o ícone de instalação na barra de endereços');
+      promptShown = true;
       window.dispatchEvent(new Event('pwa-installable'));
     }
-  }, 5000);
+  }, 3000);
 }
 
 /**
  * Verifica se é um desktop compatível com PWA
  */
 function isDesktopCompatible(): boolean {
-  return /Chrome|Edge/.test(navigator.userAgent) && !isMobile();
+  return /Chrome|Edge|Chromium/.test(navigator.userAgent) && !isMobile();
 }
