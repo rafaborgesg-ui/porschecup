@@ -1,36 +1,93 @@
 
-# 🏁 Porsche Cup - Sistema de Gerenciamento
+# 🏁 Porsche Cup - Sistema de Gerenciamento de Pneus
 
 <div align="center">
   <img src="https://img.shields.io/badge/React-18.3.1-blue.svg" alt="React" />
   <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue.svg" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Vite-6.3.5-purple.svg" alt="Vite" />
-  <img src="https://img.shields.io/badge/Tailwind-3.4.3-cyan.svg" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Supabase-Database-green.svg" alt="Supabase" />
+  <img src="https://img.shields.io/badge/PWA-Enabled-purple.svg" alt="PWA" />
+  <img src="https://img.shields.io/badge/Version-v1.2.0-blue.svg" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </div>
 
+## 🚀 Acesso ao Sistema
+
+- **🌐 Produção**: https://porschecup.vercel.app
+- **📱 PWA**: Instalável em dispositivos móveis e desktop
+- **📂 Repositório**: https://github.com/rafaborgesg-ui/porschecup
+
 ## 📋 Sobre o Projeto
 
-Sistema web moderno desenvolvido para gerenciamento de estoque de pneus da Porsche Cup. Aplicação completa com interface responsiva, sistema de autenticação, controle de estoque e relatórios em tempo real.
+Sistema completo para gerenciamento de estoque de pneus da Porsche Cup Brasil, desenvolvido como **Progressive Web App (PWA)** com backend Supabase. Aplicação moderna com interface responsiva, sistema de autenticação robusto e funcionalidades offline.
 
 ### ✨ Funcionalidades Principais
 
-- 🔐 **Autenticação Segura** - Login, cadastro e recuperação de senha
-- 📊 **Dashboard Interativo** - Visão geral completa do sistema
-- 📱 **PWA Ready** - Funciona offline como aplicativo nativo
-- 🏷️ **Scanner de Código** - Leitura de códigos de barras para registro
-- 📈 **Relatórios** - Análise de consumo e descartes
-- 🔄 **Sincronização** - Dados sempre atualizados com Supabase
-- 🎨 **UI Moderna** - Interface elegante com Radix UI e Tailwind CSS
+#### � PWA (Progressive Web App)
+- ✅ **Instalação Nativa** - Instalável em dispositivos móveis e desktop
+- ✅ **Funcionamento Offline** - Service Worker para cache inteligente
+- ✅ **Interface Responsiva** - Design adaptativo para todas as telas
+- ✅ **Notificações Push** - (planejado para v1.3.0)
 
-## 🚀 Tecnologias Utilizadas
+#### 🗄️ Gerenciamento de Estoque
+- � **Entrada de Pneus** - Registro de novos pneus no estoque
+- 🔄 **Movimentação** - Transferência entre containers
+- ⚡ **Consumo** - Ativação de pneus para uso em corridas
+- 📊 **Ajustes** - Correções e ajustes de estoque
+- 📈 **Relatórios** - Dashboards com métricas em tempo real
 
-- **Frontend:** React 18 + TypeScript + Vite
-- **Estilização:** Tailwind CSS + Radix UI
-- **Backend:** Supabase (BaaS)
-- **PWA:** Service Worker + Manifest
-- **Deploy:** Vercel
-- **Ferramentas:** ESLint, PostCSS, SWC
+#### 🔐 Sistema de Usuários
+- � **Autenticação Segura** - Login via Supabase Auth
+- 👥 **Níveis de Acesso** - Admin e Operador
+- 🛡️ **RLS Implementado** - Row Level Security em todas as tabelas
+- 👤 **Gestão de Perfis** - Controle completo de usuários
+
+## �️ Tecnologias
+
+### Frontend
+- **React 18.3.1** - Framework principal
+- **TypeScript** - Tipagem estática  
+- **Vite 6.3.5** - Build tool moderna
+- **Tailwind CSS** - Estilização utility-first
+- **shadcn/ui** - Componentes UI com Radix
+
+### Backend
+- **Supabase** - Backend-as-a-Service completo
+- **PostgreSQL** - Banco de dados relacional
+- **RLS** - Row Level Security implementado
+- **Auth** - Sistema de autenticação robusto
+
+### Infraestrutura
+- **Vercel** - Deploy automático e hosting
+- **GitHub** - Controle de versão e CI/CD
+- **PWA** - Service Worker + Manifest
+- **Offline First** - Funcionalidade offline completa
+
+## 📊 Estrutura do Banco de Dados
+
+```sql
+-- 8 Tabelas Principais
+├── tire_models          # Modelos de pneus disponíveis
+├── containers           # Containers de organização
+├── stock_entries        # Entradas de estoque
+├── tire_movements       # Movimentações de pneus
+├── tire_consumption     # Consumo e ativação
+├── tire_status          # Status dos pneus
+├── user_profiles        # Perfis com permissões
+└── freight_requests     # Solicitações de frete (futuro)
+```
+
+## 🚀 Como Instalar o PWA
+
+### 📱 Mobile (Android/iOS)
+1. Acesse https://porschecup.vercel.app no navegador
+2. O prompt de instalação aparecerá automaticamente
+3. Toque em **"Instalar"** ou **"Adicionar à tela inicial"**
+
+### 💻 Desktop (Chrome/Edge)
+1. Acesse https://porschecup.vercel.app  
+2. Procure o ícone de instalação **(⊞)** na barra de endereços
+3. Clique em **"Instalar Porsche Cup"**
 
 ## 📦 Instalação
 
