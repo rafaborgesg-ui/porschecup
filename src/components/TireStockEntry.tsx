@@ -22,6 +22,7 @@ import {
 import { 
   getTireModels, 
   getContainers, 
+  getStockEntries,
   saveStockEntry, 
   deleteStockEntry,
   checkBarcodeExists,
@@ -297,12 +298,23 @@ export function TireStockEntry() {
   };
 
   const registerEntry = () => {
-    if (!barcode.trim() || !selectedModel || !selectedContainer) return;
+    console.log('🔄 registerEntry chamado:', { barcode: barcode.trim(), selectedModel, selectedContainer });
+    
+    if (!barcode.trim() || !selectedModel || !selectedContainer) {
+      console.log('❌ Campos obrigatórios faltando:', { 
+        barcode: barcode.trim(), 
+        selectedModel, 
+        selectedContainer 
+      });
+      return;
+    }
 
     const barcodeValue = barcode.trim();
+    console.log('📝 Processando código:', barcodeValue);
 
     // Valida se o código tem exatamente 8 dígitos numéricos
     if (!/^\d{8}$/.test(barcodeValue)) {
+      console.log('❌ Código inválido:', barcodeValue);
       toast.error('Código inválido', {
         description: 'O código de barras deve conter exatamente 8 dígitos numéricos.',
       });
@@ -312,7 +324,12 @@ export function TireStockEntry() {
     }
 
     // Verifica se o código de barras já existe
+    const existingEntries = getStockEntries(true);
+    console.log('📊 Total entries in localStorage:', existingEntries.length);
+    console.log('📊 Existing barcodes:', existingEntries.map((e: StockEntry) => e.barcode));
+    
     if (checkBarcodeExists(barcodeValue)) {
+      console.log('❌ Código duplicado detectado:', barcodeValue);
       toast.error('Código de barras duplicado', {
         description: `O código ${barcodeValue} já foi registrado anteriormente.`,
       });
@@ -320,6 +337,8 @@ export function TireStockEntry() {
       inputRef.current?.focus();
       return;
     }
+    
+    console.log('✅ Código válido e único:', barcodeValue);
 
     const model = tireModels.find(m => m.id === selectedModel);
     const container = containers.find(c => c.id === selectedContainer);
@@ -338,7 +357,9 @@ export function TireStockEntry() {
       status: 'Novo', // Todos os pneus novos começam com status "Novo"
     };
 
+    console.log('💾 Tentando salvar no localStorage:', stockEntry);
     const success = saveStockEntry(stockEntry);
+    console.log('💾 Resultado do saveStockEntry:', success);
     
     if (success) {
       const newEntry: TireEntry = {

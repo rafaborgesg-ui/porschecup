@@ -154,23 +154,28 @@ export function getStockEntries(includeDiscarded: boolean = false): StockEntry[]
 
 export function saveStockEntry(entry: StockEntry): boolean {
   try {
+    console.log('💾 saveStockEntry chamado com:', entry);
     const entries = getStockEntries(true); // true = incluindo descartados para verificar duplicatas
+    console.log('💾 Entries atuais no localStorage:', entries.length);
     
     // Verifica se o código de barras já existe
     const duplicate = entries.find(e => e.barcode === entry.barcode);
     if (duplicate) {
+      console.log('❌ Duplicata encontrada:', duplicate);
       return false;
     }
     
     entries.push(entry);
+    console.log('💾 Tentando salvar', entries.length, 'entries no localStorage');
     localStorage.setItem(STORAGE_KEYS.STOCK_ENTRIES, JSON.stringify(entries));
+    console.log('✅ Salvo com sucesso no localStorage');
     
     // Dispara evento customizado para notificar outros componentes
     window.dispatchEvent(new CustomEvent('stock-entries-updated'));
     
     return true;
   } catch (error) {
-    console.error('Erro ao salvar entrada de estoque:', error);
+    console.error('❌ Erro ao salvar entrada de estoque:', error);
     return false;
   }
 }
