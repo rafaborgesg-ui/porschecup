@@ -1,13 +1,12 @@
-import { useState, useRef } from 'react';
-import { Upload, Download, FileText, AlertCircle, CheckCircle2, Database, Loader2, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Upload, Download, AlertCircle, CheckCircle2, Database, Loader2, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
-import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
-import { toast } from 'sonner@2.0.3';
-import { getTireModels, getContainers, checkBarcodeExists, getStockEntries, setStockEntries, type StockEntry } from '../utils/storage';
+import { toast } from 'sonner';
+import { getTireModels, checkBarcodeExists, getStockEntries, setStockEntries, type StockEntry } from '../utils/storage';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +28,7 @@ export function DataImport() {
   const [excelData, setExcelData] = useState('');
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Normaliza o nome do modelo para encontrar correspondência
   const normalizeModelName = (name: string): string => {

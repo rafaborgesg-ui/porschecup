@@ -1,25 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  fetchTireModels,
-  fetchContainers,
-  fetchStockEntries,
-  saveTireModelsToAPI,
-  saveContainersToAPI,
-  saveStockEntriesToAPI,
-  fetchTireMovements,
-  saveTireMovementsToAPI,
-  fetchTireConsumption,
-  saveTireConsumptionRecordsToAPI,
-  fetchUsers,
-  saveUsersToAPI,
-} from './api';
+  syncAllDataToSupabase
+} from './supabaseDirectSync';
 import {
   getTireModels,
-  getContainers,
-  getStockEntries,
-  setTireModels,
-  setContainers,
-  setStockEntries,
+  getContainers
 } from './storage';
 
 const SYNC_INTERVAL = 30000; // Sincroniza a cada 30 segundos (mais conservador)
@@ -44,27 +29,16 @@ export function useSupabaseSync() {
       isSyncing.current = true;
       setSyncStatus('syncing');
 
-      const models = getTireModels();
-      const containers = getContainers();
-      const entries = getStockEntries(true); // true = incluindo descartados
-      
-      // Busca movimentações, consumo e usuários do localStorage
-      const movements = JSON.parse(localStorage.getItem('porsche-cup-tire-movements') || '[]');
-      const consumption = JSON.parse(localStorage.getItem('porsche-cup-tire-consumption') || '[]');
-      const users = JSON.parse(localStorage.getItem('porsche-cup-users') || '[]');
-
-      await Promise.all([
-        saveTireModelsToAPI(models).catch(() => {}), // Falha silenciosa
-        saveContainersToAPI(containers).catch(() => {}), // Falha silenciosa
-        saveStockEntriesToAPI(entries).catch(() => {}), // Falha silenciosa
-        saveTireMovementsToAPI(movements).catch(() => {}), // Falha silenciosa
-        saveTireConsumptionRecordsToAPI(consumption).catch(() => {}), // Falha silenciosa
-        saveUsersToAPI(users).catch(() => {}), // Falha silenciosa
-      ]);
+      // Usa o novo sistema de sincronização direta
+      const { success } = await syncAllDataToSupabase();
 
       lastSync.current = Date.now();
-      setIsOnline(true);
-      setSyncStatus('synced');
+      setIsOnline(success);
+      setSyncStatus(success ? 'synced' : 'error');
+      
+      if (!success) {
+        lastError.current = Date.now();
+      }
     } catch (error) {
       // Falha silenciosa - não mostra erro ao usuário
       lastError.current = Date.now();
@@ -75,70 +49,11 @@ export function useSupabaseSync() {
     }
   };
 
-  // Sincroniza Supabase -> localStorage (silenciosamente)
+  // Sincroniza dados do localStorage para Supabase em background
   const syncFromSupabase = async () => {
-    if (isSyncing.current) return;
-
-    // Não tenta sincronizar se teve erro recentemente
-    const timeSinceError = Date.now() - lastError.current;
-    if (timeSinceError < RETRY_DELAY) return;
-
-    try {
-      isSyncing.current = true;
-      setSyncStatus('syncing');
-
-      const [models, containers, entries, movements, consumption, users] = await Promise.all([
-        fetchTireModels().catch(() => []),
-        fetchContainers().catch(() => []),
-        fetchStockEntries().catch(() => []),
-        fetchTireMovements().catch(() => []),
-        fetchTireConsumption().catch(() => []),
-        fetchUsers().catch(() => []),
-      ]);
-
-      // Só atualiza se realmente recebeu dados
-      // setTireModels, setContainers e setStockEntries já disparam eventos internamente
-      if (models.length > 0) {
-        setTireModels(models);
-      }
-
-      if (containers.length > 0) {
-        setContainers(containers);
-      }
-
-      if (entries.length > 0) {
-        setStockEntries(entries);
-      }
-      
-      // Sincroniza movimentações
-      if (movements.length > 0) {
-        localStorage.setItem('porsche-cup-tire-movements', JSON.stringify(movements));
-        window.dispatchEvent(new Event('tire-movements-updated'));
-      }
-      
-      // Sincroniza consumo
-      if (consumption.length > 0) {
-        localStorage.setItem('porsche-cup-tire-consumption', JSON.stringify(consumption));
-        window.dispatchEvent(new Event('tire-consumption-updated'));
-      }
-      
-      // Sincroniza usuários
-      if (users.length > 0) {
-        localStorage.setItem('porsche-cup-users', JSON.stringify(users));
-        window.dispatchEvent(new Event('users-updated'));
-      }
-
-      lastSync.current = Date.now();
-      setIsOnline(true);
-      setSyncStatus('synced');
-    } catch (error) {
-      // Falha silenciosa - aplicação funciona normalmente com localStorage
-      lastError.current = Date.now();
-      setIsOnline(false);
-      setSyncStatus('error');
-    } finally {
-      isSyncing.current = false;
-    }
+    // Por enquanto, apenas registra que seria feito uma sincronização de entrada
+    // Focamos na sincronização de saída (localStorage -> Supabase)
+    console.log('📥 Sync from Supabase temporarily disabled - using localStorage as source of truth');
   };
 
   useEffect(() => {

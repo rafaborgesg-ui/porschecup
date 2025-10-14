@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, User, Eye, EyeOff, Shield, Users as UsersIcon, Save, X as XIcon, RefreshCcw } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Eye, EyeOff, Shield, Users as UsersIcon, RefreshCcw } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { ActionButton } from './ActionFeedback';
-import { projectId } from '../utils/supabase/info';
-import { getAccessToken, createClient } from '../utils/supabase/client';
+import { createClient } from '../utils/supabase/client';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -34,12 +32,12 @@ interface User {
 // FUNÇÕES DE API - Integração Supabase
 // ============================================
 
-// Função alternativa para buscar usuários diretamente do Supabase
+// Função para buscar usuários do Authentication + user_profiles (fonte unificada)
 async function fetchUsersFromSupabase(): Promise<User[]> {
   try {
     const supabase = createClient();
     
-    // First, check if we can get the current user
+    // Verificar se há usuário autenticado
     const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !currentUser) {
@@ -49,10 +47,20 @@ async function fetchUsersFromSupabase(): Promise<User[]> {
     
     console.log('Current user:', currentUser);
     
-    // Since we can't access all users without admin privileges,
-    // we'll show the current user and any users we've created locally
-    const users: User[] = [
-      {
+    // Buscar todos os usuários do Authentication (usando admin API se disponível)
+    // Como não temos acesso direto ao Admin API no frontend, vamos usar a tabela user_profiles
+    // mas sincronizar com o Authentication como fonte principal
+    
+    // Buscar perfis de usuários existentes
+    const { data: userProfiles, error: profilesError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (profilesError) {
+      console.error('Error fetching user profiles:', profilesError);
+      // Fallback: mostrar apenas o usuário atual
+      return [{
         id: currentUser.id,
         email: currentUser.email || '',
         name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
@@ -60,28 +68,55 @@ async function fetchUsersFromSupabase(): Promise<User[]> {
         role: currentUser.user_metadata?.role || 'operator',
         active: true,
         createdAt: currentUser.created_at || new Date().toISOString()
-      }
-    ];
-    
-    // Try to get additional users from localStorage (for demo purposes)
-    try {
-      const localUsers = localStorage.getItem('porsche_cup_users');
-      if (localUsers) {
-        const parsed = JSON.parse(localUsers);
-        if (Array.isArray(parsed)) {
-          // Add local users that aren't already in the list
-          parsed.forEach(localUser => {
-            if (!users.find(u => u.email === localUser.email)) {
-              users.push(localUser);
-            }
-          });
-        }
-      }
-    } catch (storageError) {
-      console.log('No local users found');
+      }];
     }
     
-    console.log('Returning users:', users);
+    // Criar um mapa dos perfis existentes
+    const profilesMap = new Map(userProfiles.map((p: any) => [p.id, p]));
+    
+    // Verificar se o usuário atual tem perfil, se não, criar
+    if (!profilesMap.has(currentUser.id)) {
+      console.log('Current user not found in user_profiles, creating profile...');
+      
+      const isFirstUser = userProfiles.length === 0;
+      const role = isFirstUser ? 'admin' : (currentUser.user_metadata?.role || 'operator');
+      
+      const { error: insertError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: currentUser.id,
+          email: currentUser.email || '',
+          name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
+          role: role,
+          is_active: true
+        }]);
+      
+      if (!insertError) {
+        console.log(`✅ Created ${role} profile for current user`);
+        // Adicionar ao mapa local
+        profilesMap.set(currentUser.id, {
+          id: currentUser.id,
+          email: currentUser.email || '',
+          name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
+          role: role,
+          is_active: true,
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Converter perfis para formato da interface, priorizando dados do Authentication
+    const users: User[] = Array.from(profilesMap.values()).map((profile: any) => ({
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      username: profile.email.split('@')[0],
+      role: profile.role as 'admin' | 'operator',
+      active: profile.is_active,
+      createdAt: profile.created_at
+    }));
+    
+    console.log('Loaded users from unified Authentication + user_profiles:', users);
     return users;
   } catch (error) {
     console.error('Error in fetchUsersFromSupabase:', error);
@@ -109,11 +144,11 @@ async function createUser(userData: {
   username: string;
 }): Promise<User> {
   try {
-    console.log('🔨 Creating user directly via Supabase Auth SDK...');
+    console.log('🔨 Creating user in Authentication (fonte principal)...');
     
     const supabase = createClient();
     
-    // Use Supabase Auth directly to create the user
+    // 1. Criar usuário no Authentication (fonte principal)
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
@@ -126,42 +161,52 @@ async function createUser(userData: {
       }
     });
     
-    console.log('📊 Supabase signUp response:', { data, error });
+    console.log('📊 Authentication signUp response:', { data, error });
     
     if (error) {
-      console.error('❌ Supabase signUp error:', error);
-      throw new Error(error.message || 'Erro ao criar usuário');
+      console.error('❌ Authentication signUp error:', error);
+      throw new Error(error.message || 'Erro ao criar usuário no Authentication');
     }
     
     if (!data.user) {
-      throw new Error('Usuário não foi criado corretamente');
+      throw new Error('Usuário não foi criado no Authentication');
     }
     
-    console.log('✅ User created successfully:', data.user);
-        
-        // Format user data
-        const newUser = {
-          id: data.user.id,
-          email: data.user.email || userData.email,
-          name: userData.name,
-          username: userData.username || userData.email.split('@')[0],
-          role: userData.role,
-          active: true,
-          createdAt: data.user.created_at || new Date().toISOString()
-        };
-        
-        // Save to localStorage for demo purposes
-        try {
-          const existingUsers = localStorage.getItem('porsche_cup_users');
-          const users = existingUsers ? JSON.parse(existingUsers) : [];
-          users.push(newUser);
-          localStorage.setItem('porsche_cup_users', JSON.stringify(users));
-          console.log('✅ User saved to localStorage');
-        } catch (storageError) {
-          console.log('⚠️ Could not save to localStorage:', storageError);
-        }
-        
-        return newUser;
+    console.log('✅ User created in Authentication:', data.user.email);
+    
+    // 2. Sincronizar com user_profiles (dados complementares)
+    // O trigger handle_new_user() deve fazer isso automaticamente,
+    // mas vamos garantir manualmente caso não exista o trigger
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert([{
+        id: data.user.id,
+        email: data.user.email || userData.email,
+        name: userData.name,
+        role: userData.role,
+        is_active: true
+      }]);
+    
+    if (profileError) {
+      console.warn('⚠️ Error syncing with user_profiles (pode ser normal se trigger existir):', profileError);
+      // Não falhar aqui - o usuário foi criado no Authentication
+    } else {
+      console.log('✅ User profile synced to user_profiles table');
+    }
+    
+    // 3. Retornar dados do usuário (priorizando Authentication)
+    const newUser: User = {
+      id: data.user.id,
+      email: data.user.email || userData.email,
+      name: userData.name,
+      username: userData.username || userData.email.split('@')[0],
+      role: userData.role,
+      active: true,
+      createdAt: data.user.created_at || new Date().toISOString()
+    };
+    
+    console.log('✅ User created successfully in unified system');
+    return newUser;
   } catch (error) {
     console.error('Error in createUser:', error);
     throw error;
@@ -170,54 +215,52 @@ async function createUser(userData: {
 
 async function updateUser(userId: string, updates: Partial<User>): Promise<void> {
   try {
-    console.log('🔄 Updating user via localStorage and Supabase Auth...');
+    console.log('🔄 Updating user in unified system (Authentication + user_profiles)...');
     console.log('User update requested:', { userId, updates });
     
-    // Update user in localStorage
-    try {
-      const existingUsers = localStorage.getItem('porsche_cup_users');
-      const users = existingUsers ? JSON.parse(existingUsers) : [];
-      
-      const userIndex = users.findIndex((u: User) => u.id === userId);
-      if (userIndex !== -1) {
-        // Update the user data
-        users[userIndex] = { ...users[userIndex], ...updates };
-        localStorage.setItem('porsche_cup_users', JSON.stringify(users));
-        console.log('✅ User updated in localStorage');
-      } else {
-        // User not found in localStorage, this might be the current authenticated user
-        // Let's get the current user from Supabase and add/update it
-        const supabase = createClient();
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        
-        if (currentUser && currentUser.id === userId) {
-          // This is the current authenticated user, add it to localStorage with updates
-          const newUser: User = {
-            id: currentUser.id,
-            email: currentUser.email || '',
-            name: currentUser.user_metadata?.name || '',
-            username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || '',
-            role: currentUser.user_metadata?.role || 'operator',
-            active: true,
-            createdAt: currentUser.created_at || new Date().toISOString(),
-            ...updates // Apply the updates
-          };
-          
-          users.push(newUser);
-          localStorage.setItem('porsche_cup_users', JSON.stringify(users));
-          console.log('✅ Current user added to localStorage with updates');
-        } else {
-          throw new Error('Usuário não encontrado na lista local e não é o usuário atual');
-        }
-      }
-    } catch (storageError) {
-      console.error('Error updating localStorage:', storageError);
-      throw new Error('Erro ao atualizar usuário localmente');
+    const supabase = createClient();
+    
+    // 1. Atualizar dados complementares na tabela user_profiles
+    const updateData: any = {};
+    if (updates.name) updateData.name = updates.name;
+    if (updates.email) updateData.email = updates.email;
+    if (updates.role) updateData.role = updates.role;
+    if (updates.active !== undefined) updateData.is_active = updates.active;
+    
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update(updateData)
+      .eq('id', userId);
+    
+    if (profileError) {
+      console.error('❌ Error updating user_profiles:', profileError);
+      throw new Error(profileError.message || 'Erro ao atualizar perfil do usuário');
     }
     
-    // Note: In a real implementation, you would also update the user in Supabase Auth
-    // using the Admin API, but that requires server-side implementation
-    console.log('✅ User update completed');
+    console.log('✅ User profile updated in user_profiles');
+    
+    // 2. Se é o usuário atual e tem mudanças de metadata, atualizar no Authentication
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (currentUser && currentUser.id === userId && (updates.name || updates.role)) {
+      console.log('🔄 Updating current user metadata in Authentication...');
+      
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          name: updates.name || currentUser.user_metadata?.name,
+          role: updates.role || currentUser.user_metadata?.role
+        }
+      });
+      
+      if (authError) {
+        console.warn('⚠️ Could not update Authentication metadata:', authError);
+        // Não falhar aqui - o perfil foi atualizado
+      } else {
+        console.log('✅ Authentication metadata updated');
+      }
+    }
+    
+    console.log('✅ User updated successfully in unified system');
   } catch (error) {
     console.error('Error in updateUser:', error);
     throw error;
@@ -226,31 +269,27 @@ async function updateUser(userId: string, updates: Partial<User>): Promise<void>
 
 async function deleteUser(userId: string): Promise<void> {
   try {
-    console.log('🗑️ Deleting user via localStorage...');
+    console.log('🗑️ Deleting user from unified system...');
     console.log('User deletion requested:', { userId });
     
-    // Delete user from localStorage
-    try {
-      const existingUsers = localStorage.getItem('porsche_cup_users');
-      const users = existingUsers ? JSON.parse(existingUsers) : [];
-      
-      const userIndex = users.findIndex((u: User) => u.id === userId);
-      if (userIndex !== -1) {
-        // Remove the user from the array
-        users.splice(userIndex, 1);
-        localStorage.setItem('porsche_cup_users', JSON.stringify(users));
-        console.log('✅ User deleted from localStorage');
-      } else {
-        throw new Error('Usuário não encontrado na lista local');
-      }
-    } catch (storageError) {
-      console.error('Error deleting from localStorage:', storageError);
-      throw new Error('Erro ao excluir usuário localmente');
+    const supabase = createClient();
+    
+    // Nota: A exclusão real do usuário do Authentication requer Admin API
+    // Por enquanto, vamos desativar o usuário na tabela user_profiles
+    // Em um ambiente de produção, isso seria feito via servidor com Admin API
+    
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({ is_active: false })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('❌ Error deactivating user:', error);
+      throw new Error(error.message || 'Erro ao desativar usuário');
     }
     
-    // Note: In a real implementation, you would also delete the user from Supabase Auth
-    // using the Admin API, but that requires server-side implementation
-    console.log('✅ User deletion completed');
+    console.log('✅ User deactivated successfully (not deleted from Authentication)');
+    console.log('ℹ️  Note: Para deletar completamente do Authentication, usar Admin API no servidor');
   } catch (error) {
     console.error('Error in deleteUser:', error);
     throw error;
@@ -291,11 +330,12 @@ export function UserManagement() {
       
       let errorMessage = 'Não foi possível carregar usuários.';
       
-      if (error.message.includes('Token não encontrado')) {
+      const errorMsg = (error as Error).message || 'Erro desconhecido';
+      if (errorMsg.includes('Token não encontrado')) {
         errorMessage = 'Sessão expirada. Faça login novamente.';
-      } else if (error.message.includes('401')) {
+      } else if (errorMsg.includes('401')) {
         errorMessage = 'Não autorizado. Faça login novamente.';
-      } else if (error.message.includes('403')) {
+      } else if (errorMsg.includes('403')) {
         errorMessage = 'Acesso negado. Apenas administradores.';
       }
       
@@ -462,8 +502,8 @@ export function UserManagement() {
     try {
       await deleteUser(userToDelete.id);
       
-      toast.success('🗑️ Usuário excluído do Supabase', {
-        description: `${userToDelete.name} foi removido do sistema.`,
+      toast.success('� Usuário desativado', {
+        description: `${userToDelete.name} foi desativado no sistema.`,
         duration: 3000,
       });
       
@@ -472,7 +512,7 @@ export function UserManagement() {
     } catch (error) {
       console.error('Error deleting user:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error('Erro ao excluir usuário', {
+      toast.error('Erro ao desativar usuário', {
         description: errorMessage,
         duration: 4000,
       });
@@ -532,8 +572,21 @@ export function UserManagement() {
     <div className="flex-1 p-3 sm:p-4 lg:p-8 w-full max-w-full overflow-x-hidden">
       <div className="max-w-7xl lg:mx-auto w-full">
         <div className="mb-8">
-          <h1 className="text-gray-900 mb-2">Gerenciamento de Usuários</h1>
-          <p className="text-gray-500">Gerencie os usuários e permissões do sistema</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-gray-900 mb-2">Gerenciamento de Usuários</h1>
+              <p className="text-gray-500">Gerencie os usuários e permissões do sistema</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={loadUsers}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCcw size={16} className={isLoading ? 'animate-spin' : ''} />
+              Recarregar
+            </Button>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -692,7 +745,7 @@ export function UserManagement() {
                       Atualizar
                     </Button>
                     <span className="text-sm text-gray-500">Registros por página:</span>
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value: string) => setItemsPerPage(Number(value))}>
                       <SelectTrigger className="w-24">
                         <SelectValue />
                       </SelectTrigger>
@@ -806,7 +859,7 @@ export function UserManagement() {
                               <button
                                 onClick={() => handleDeleteClick(user)}
                                 className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-gray-100"
-                                title="Excluir usuário"
+                                title="Desativar usuário"
                               >
                                 <Trash2 size={18} />
                               </button>
@@ -855,10 +908,10 @@ export function UserManagement() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogTitle>Desativar usuário?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o usuário <strong>{userToDelete?.name}</strong>?
-              Esta ação não pode ser desfeita.
+              Tem certeza que deseja desativar o usuário <strong>{userToDelete?.name}</strong>?
+              O usuário ficará inativo mas seus dados serão preservados no Authentication.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -868,12 +921,12 @@ export function UserManagement() {
             <ActionButton
               onClick={confirmDelete}
               isLoading={isDeleting}
-              loadingText="Excluindo..."
+              loadingText="Desativando..."
               variant="destructive"
               icon={<Trash2 size={16} />}
               disabled={isDeleting}
             >
-              Excluir
+              Desativar
             </ActionButton>
           </AlertDialogFooter>
         </AlertDialogContent>

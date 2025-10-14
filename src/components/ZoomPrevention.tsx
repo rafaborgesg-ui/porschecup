@@ -50,7 +50,7 @@ export function ZoomPrevention() {
     };
 
     // Monitora mudanças de escala do viewport (silencioso)
-    let lastScale = 1;
+    // let lastScale = 1;
     const handleViewportResize = () => {
       if (window.visualViewport) {
         const currentScale = window.visualViewport.scale;
@@ -63,7 +63,7 @@ export function ZoomPrevention() {
           window.scrollTo(0, window.scrollY);
         }
 
-        lastScale = currentScale;
+        // lastScale = currentScale;
       }
     };
 

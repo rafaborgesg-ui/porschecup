@@ -3,7 +3,8 @@ import { Package, Activity, Trash2, TrendingUp, ArrowUpRight, ArrowDownRight, Ca
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { getStockEntries, getContainers, getTireModels } from '../utils/storage';
-import { ResponsiveTable, ResponsiveGrid } from './ResponsiveTable';
+import { SupabaseSyncMonitor } from './SupabaseSyncMonitor';
+// import { ResponsiveTable, ResponsiveGrid } from './ResponsiveTable';
 
 interface StatCard {
   title: string;
@@ -36,14 +37,14 @@ export function Dashboard() {
   const loadDashboardData = () => {
     const allEntries = getStockEntries(true);
     const activeEntries = getStockEntries(false);
-    const containers = getContainers();
+    // const containers = getContainers();
 
     // Total de pneus EXCLUINDO os descartados
     const totalPneus = activeEntries.length;
     const pneusAtivos = activeEntries.filter(e => e.status === 'Ativo' || !e.status).length;
     const pneusNovos = activeEntries.filter(e => e.status === 'Novo').length;
     const pneusDescartados = allEntries.filter(e => e.status === 'Descarte').length;
-    const totalContainers = containers.length;
+    // const totalContainers = containers.length;
 
     // Calcula containers únicos por status
     // Containers com pneus ativos (Ativo + Novo, excluindo Descartados)
@@ -265,7 +266,7 @@ export function Dashboard() {
             const containers = getContainers();
             const tireModels = getTireModels();
 
-            let filteredEntries = [];
+            let filteredEntries: any[] = [];
             let title = '';
             let description = '';
             let headerColor = '';
@@ -357,7 +358,7 @@ export function Dashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
-                        {displayEntries.map((entry, idx) => {
+                        {displayEntries.map((entry) => {
                           const container = containers.find(c => c.id === entry.containerId);
                           const model = tireModels.find(m => m.id === entry.tireModelId);
 
@@ -445,6 +446,9 @@ export function Dashboard() {
           })()}
         </Card>
       )}
+
+      {/* Monitor de Sincronização Supabase */}
+      <SupabaseSyncMonitor />
 
       {/* Informação adicional */}
       <Card className="p-6 bg-gradient-to-br from-gray-50 to-white border-gray-200">

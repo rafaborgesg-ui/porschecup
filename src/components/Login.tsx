@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, User, CheckCircle2, AlertCircle } from 'lucide-react';
 import porscheCupLogo from 'figma:asset/3ae08ff326060d9638298673cda23da363101b9f.png';
 import { createClient } from '../utils/supabase/client';
@@ -160,7 +160,7 @@ export function Login({ onLogin, onSignUp }: LoginProps) {
       const supabase = createClient();
       
       // Inicia OAuth com Google
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/`,

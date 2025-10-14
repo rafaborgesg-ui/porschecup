@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Search, Filter, Package, Calendar, Barcode, Tag, Truck, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Edit, Save } from 'lucide-react';
+import { Trash2, Search, Filter, Package, Calendar, Barcode, Tag, Truck, AlertTriangle, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Edit } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Label } from './ui/label';
-import { toast } from 'sonner@2.0.3';
-import { ActionButton } from './ActionFeedback';
+import { toast } from 'sonner';
+// import { ActionButton } from './ActionFeedback';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +36,7 @@ interface TireEntry {
   containerId: string;
   containerName: string;
   timestamp: string;
-  status?: 'Novo' | 'Ativo' | 'Descarte';
+  status?: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto';
   sessionId?: string;
 }
 
@@ -60,9 +60,9 @@ export function StockAdjustment() {
   const [entryToDelete, setEntryToDelete] = useState<TireEntry | null>(null);
   const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // const [isRefreshing, setIsRefreshing] = useState(false);
+  // const [isDeleting, setIsDeleting] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -72,7 +72,7 @@ export function StockAdjustment() {
     modelId: '',
     containerId: '',
     timestamp: '',
-    status: 'Novo' as 'Novo' | 'Ativo' | 'Descarte',
+    status: 'Novo' as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
   });
   const [tireModels, setTireModels] = useState<any[]>([]);
   const [containers, setContainers] = useState<any[]>([]);
@@ -128,14 +128,14 @@ export function StockAdjustment() {
     setContainers(containersList);
   };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    loadEntries();
-    setIsRefreshing(false);
-    toast.success('Dados atualizados', {
-      description: `${entries.length} pneus carregados.`,
-    });
-  };
+  // const handleRefresh = () => {
+  //   // setIsRefreshing(true);
+  //   loadEntries();
+  //   // setIsRefreshing(false);
+  //   toast.success('Dados atualizados', {
+  //     description: `${entries.length} pneus carregados.`,
+  //   });
+  // };
 
   const applyFilters = () => {
     let filtered = [...entries];
@@ -167,6 +167,8 @@ export function StockAdjustment() {
         filtered = filtered.filter(entry => entry.status === 'Ativo');
       } else if (filterStatus === 'discarded') {
         filtered = filtered.filter(entry => entry.status === 'Descarte');
+      } else if (filterStatus === 'pilot') {
+        filtered = filtered.filter(entry => entry.status === 'Piloto');
       }
     }
 
@@ -307,7 +309,7 @@ export function StockAdjustment() {
       return;
     }
 
-    setIsSaving(true);
+    // setIsSaving(true);
 
     // Simula operação assíncrona
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -335,7 +337,7 @@ export function StockAdjustment() {
       duration: 3000,
     });
 
-    setIsSaving(false);
+    // setIsSaving(false);
     setEditDialogOpen(false);
     setEntryToEdit(null);
   };
@@ -343,7 +345,7 @@ export function StockAdjustment() {
   const confirmDelete = async () => {
     if (!entryToDelete) return;
 
-    setIsDeleting(true);
+    // setIsDeleting(true);
 
     // Simula operação assíncrona
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -361,7 +363,7 @@ export function StockAdjustment() {
       duration: 3000,
     });
 
-    setIsDeleting(false);
+    // setIsDeleting(false);
     setDeleteDialogOpen(false);
     setEntryToDelete(null);
   };
@@ -535,6 +537,7 @@ export function StockAdjustment() {
                   <SelectItem value="new">Novo</SelectItem>
                   <SelectItem value="active">Ativo</SelectItem>
                   <SelectItem value="discarded">Descarte</SelectItem>
+                  <SelectItem value="pilot">Piloto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -955,7 +958,7 @@ export function StockAdjustment() {
               <Label htmlFor="edit-status">Status do Pneu</Label>
               <Select 
                 value={editFormData.status} 
-                onValueChange={(value: 'Novo' | 'Ativo' | 'Descarte') => setEditFormData({ ...editFormData, status: value })}
+                onValueChange={(value: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto') => setEditFormData({ ...editFormData, status: value })}
               >
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Selecione o status" />
@@ -979,12 +982,25 @@ export function StockAdjustment() {
                       <span>Descarte</span>
                     </div>
                   </SelectItem>
+                  <SelectItem value="Piloto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <span>Piloto</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Piloto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <span>Piloto</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
                 {editFormData.status === 'Novo' && '🔵 Pneu novo, ainda não utilizado'}
                 {editFormData.status === 'Ativo' && '🟢 Pneu em uso ativo'}
                 {editFormData.status === 'Descarte' && '🔴 Pneu marcado para descarte'}
+                {editFormData.status === 'Piloto' && '🟠 Pneu em condição de piloto (em avaliação/teste)'}
               </p>
             </div>
 

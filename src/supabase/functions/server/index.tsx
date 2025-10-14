@@ -561,8 +561,9 @@ app.get("/make-server-18cdc61b/health", (c) => {
 
 app.get("/make-server-18cdc61b/tire-models", authMiddleware, async (c) => {
   try {
-    const models = await kv.get("tire_models") || [];
-    return c.json({ success: true, data: models });
+    const { data: models, error } = await supabase.from('tire_models').select('*');
+    if (error) throw error;
+    return c.json({ success: true, data: models || [] });
   } catch (error) {
     console.error("Error fetching tire models:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -572,7 +573,8 @@ app.get("/make-server-18cdc61b/tire-models", authMiddleware, async (c) => {
 app.post("/make-server-18cdc61b/tire-models", authMiddleware, adminMiddleware, async (c) => {
   try {
     const models = await c.req.json();
-    await kv.set("tire_models", models);
+    const { error } = await supabase.from('tire_models').upsert(models);
+    if (error) throw error;
     console.log(`Tire models updated by user: ${c.get('userId')}`);
     return c.json({ success: true });
   } catch (error) {
@@ -587,8 +589,9 @@ app.post("/make-server-18cdc61b/tire-models", authMiddleware, adminMiddleware, a
 
 app.get("/make-server-18cdc61b/containers", authMiddleware, async (c) => {
   try {
-    const containers = await kv.get("containers") || [];
-    return c.json({ success: true, data: containers });
+    const { data: containers, error } = await supabase.from('containers').select('*');
+    if (error) throw error;
+    return c.json({ success: true, data: containers || [] });
   } catch (error) {
     console.error("Error fetching containers:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -598,7 +601,8 @@ app.get("/make-server-18cdc61b/containers", authMiddleware, async (c) => {
 app.post("/make-server-18cdc61b/containers", authMiddleware, adminMiddleware, async (c) => {
   try {
     const containers = await c.req.json();
-    await kv.set("containers", containers);
+    const { error } = await supabase.from('containers').upsert(containers);
+    if (error) throw error;
     console.log(`Containers updated by user: ${c.get('userId')}`);
     return c.json({ success: true });
   } catch (error) {
@@ -613,8 +617,9 @@ app.post("/make-server-18cdc61b/containers", authMiddleware, adminMiddleware, as
 
 app.get("/make-server-18cdc61b/stock-entries", authMiddleware, async (c) => {
   try {
-    const entries = await kv.get("stock_entries") || [];
-    return c.json({ success: true, data: entries });
+    const { data: entries, error } = await supabase.from('stock_entries').select('*');
+    if (error) throw error;
+    return c.json({ success: true, data: entries || [] });
   } catch (error) {
     console.error("Error fetching stock entries:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -624,16 +629,20 @@ app.get("/make-server-18cdc61b/stock-entries", authMiddleware, async (c) => {
 app.post("/make-server-18cdc61b/stock-entries", authMiddleware, async (c) => {
   try {
     const entry = await c.req.json();
-    const entries = await kv.get("stock_entries") || [];
     
     // Check for duplicate barcode
-    const duplicate = entries.find((e: any) => e.barcode === entry.barcode);
-    if (duplicate) {
+    const { data: existing, error: checkError } = await supabase
+      .from('stock_entries')
+      .select('id')
+      .eq('barcode', entry.barcode);
+    
+    if (checkError) throw checkError;
+    if (existing && existing.length > 0) {
       return c.json({ success: false, error: "Barcode already exists" }, 400);
     }
     
-    entries.push(entry);
-    await kv.set("stock_entries", entries);
+    const { error } = await supabase.from('stock_entries').insert(entry);
+    if (error) throw error;
     return c.json({ success: true });
   } catch (error) {
     console.error("Error saving stock entry:", error);
@@ -644,9 +653,8 @@ app.post("/make-server-18cdc61b/stock-entries", authMiddleware, async (c) => {
 app.delete("/make-server-18cdc61b/stock-entries/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
-    const entries = await kv.get("stock_entries") || [];
-    const updated = entries.filter((e: any) => e.id !== id);
-    await kv.set("stock_entries", updated);
+    const { error } = await supabase.from('stock_entries').delete().eq('id', id);
+    if (error) throw error;
     return c.json({ success: true });
   } catch (error) {
     console.error("Error deleting stock entry:", error);
@@ -657,9 +665,8 @@ app.delete("/make-server-18cdc61b/stock-entries/:id", authMiddleware, async (c) 
 app.post("/make-server-18cdc61b/stock-entries/bulk-delete", authMiddleware, async (c) => {
   try {
     const { ids } = await c.req.json();
-    const entries = await kv.get("stock_entries") || [];
-    const updated = entries.filter((e: any) => !ids.includes(e.id));
-    await kv.set("stock_entries", updated);
+    const { error } = await supabase.from('stock_entries').delete().in('id', ids);
+    if (error) throw error;
     return c.json({ success: true });
   } catch (error) {
     console.error("Error bulk deleting stock entries:", error);
@@ -677,7 +684,8 @@ app.put("/make-server-18cdc61b/stock-entries", authMiddleware, async (c) => {
       return c.json({ success: false, error: "Invalid data format" }, 400);
     }
     
-    await kv.set("stock_entries", entries);
+    const { error } = await supabase.from('stock_entries').upsert(entries);
+    if (error) throw error;
     console.log(`Updated ${entries.length} stock entries in bulk`);
     return c.json({ success: true });
   } catch (error) {
@@ -691,15 +699,9 @@ app.put("/make-server-18cdc61b/stock-entries/:barcode", authMiddleware, async (c
   try {
     const barcode = c.req.param("barcode");
     const updates = await c.req.json();
-    const entries = await kv.get("stock_entries") || [];
-    const index = entries.findIndex((e: any) => e.barcode === barcode);
     
-    if (index === -1) {
-      return c.json({ success: false, error: "Entry not found" }, 404);
-    }
-    
-    entries[index] = { ...entries[index], ...updates };
-    await kv.set("stock_entries", entries);
+    const { error } = await supabase.from('stock_entries').update(updates).eq('barcode', barcode);
+    if (error) throw error;
     return c.json({ success: true });
   } catch (error) {
     console.error("Error updating stock entry:", error);
@@ -713,8 +715,9 @@ app.put("/make-server-18cdc61b/stock-entries/:barcode", authMiddleware, async (c
 
 app.get("/make-server-18cdc61b/tire-movements", authMiddleware, async (c) => {
   try {
-    const movements = await kv.get("tire_movements") || [];
-    return c.json({ success: true, data: movements });
+    const { data: movements, error } = await supabase.from('tire_movements').select('*');
+    if (error) throw error;
+    return c.json({ success: true, data: movements || [] });
   } catch (error) {
     console.error("Error fetching tire movements:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -724,15 +727,14 @@ app.get("/make-server-18cdc61b/tire-movements", authMiddleware, async (c) => {
 app.post("/make-server-18cdc61b/tire-movements", authMiddleware, async (c) => {
   try {
     const movement = await c.req.json();
-    const movements = await kv.get("tire_movements") || [];
     
     // Add timestamp if not present
     if (!movement.timestamp) {
       movement.timestamp = new Date().toISOString();
     }
     
-    movements.push(movement);
-    await kv.set("tire_movements", movements);
+    const { error } = await supabase.from('tire_movements').insert(movement);
+    if (error) throw error;
     console.log("Tire movement saved:", movement.id);
     return c.json({ success: true });
   } catch (error) {
@@ -750,7 +752,8 @@ app.put("/make-server-18cdc61b/tire-movements", authMiddleware, async (c) => {
       return c.json({ success: false, error: "Invalid data format" }, 400);
     }
     
-    await kv.set("tire_movements", movements);
+    const { error } = await supabase.from('tire_movements').upsert(movements);
+    if (error) throw error;
     console.log(`Updated ${movements.length} tire movements in bulk`);
     return c.json({ success: true });
   } catch (error) {
@@ -765,8 +768,9 @@ app.put("/make-server-18cdc61b/tire-movements", authMiddleware, async (c) => {
 
 app.get("/make-server-18cdc61b/tire-consumption", authMiddleware, async (c) => {
   try {
-    const records = await kv.get("tire_consumption") || [];
-    return c.json({ success: true, data: records });
+    const { data: records, error } = await supabase.from('tire_consumption').select('*');
+    if (error) throw error;
+    return c.json({ success: true, data: records || [] });
   } catch (error) {
     console.error("Error fetching consumption records:", error);
     return c.json({ success: false, error: error.message }, 500);
@@ -776,15 +780,14 @@ app.get("/make-server-18cdc61b/tire-consumption", authMiddleware, async (c) => {
 app.post("/make-server-18cdc61b/tire-consumption", authMiddleware, async (c) => {
   try {
     const record = await c.req.json();
-    const records = await kv.get("tire_consumption") || [];
     
     // Add timestamp if not present
     if (!record.timestamp) {
       record.timestamp = new Date().toISOString();
     }
     
-    records.push(record);
-    await kv.set("tire_consumption", records);
+    const { error } = await supabase.from('tire_consumption').insert(record);
+    if (error) throw error;
     console.log("Consumption record saved:", record.id);
     return c.json({ success: true });
   } catch (error) {
@@ -802,7 +805,8 @@ app.put("/make-server-18cdc61b/tire-consumption", authMiddleware, async (c) => {
       return c.json({ success: false, error: "Invalid data format" }, 400);
     }
     
-    await kv.set("tire_consumption", records);
+    const { error } = await supabase.from('tire_consumption').upsert(records);
+    if (error) throw error;
     console.log(`Updated ${records.length} consumption records in bulk`);
     return c.json({ success: true });
   } catch (error) {

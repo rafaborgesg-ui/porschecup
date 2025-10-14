@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CircleDot, Plus, Edit2, Trash2, Save, X, AlertCircle, Shield, Check } from 'lucide-react';
+import { CircleDot, Plus, Edit2, Trash2, Save, X, AlertCircle, Shield } from 'lucide-react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -15,7 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { getTireStatus, addTireStatus, updateTireStatus, deleteTireStatus, type TireStatus } from '../utils/storage';
 
 const COLOR_PRESETS = [

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { UserCircle, Barcode, CheckCircle2, AlertCircle, User, Calendar, Package, Search, Filter, Trash2, Download, Camera } from 'lucide-react';
+import { UserCircle, Barcode, CheckCircle2, User, Package, Search, Download, Camera } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Checkbox } from './ui/checkbox';
-import { toast } from 'sonner@2.0.3';
+// import { Checkbox } from './ui/checkbox';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { BarcodeScanner } from './BarcodeScanner';
 import {
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import { getStockEntries, updateStockEntry, getTireStatus, type StockEntry, type TireStatus } from '../utils/storage';
+import { getStockEntries, updateStockEntry, type StockEntry } from '../utils/storage';
 
 interface ConsumptionRecord {
   id: string;
@@ -97,7 +97,7 @@ export function TireConsumption() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [statusList, setStatusList] = useState<TireStatus[]>([]);
+  // const [statusList, setStatusList] = useState<TireStatus[]>([]);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   // Estado para registro em lote
@@ -138,8 +138,8 @@ export function TireConsumption() {
   }, []);
 
   const loadStatus = () => {
-    const status = getTireStatus();
-    setStatusList(status);
+    // const status = getTireStatus();
+    // setStatusList(status);
   };
 
   const loadConsumptionRecords = () => {

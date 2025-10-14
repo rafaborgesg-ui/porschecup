@@ -7,8 +7,8 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { getStockEntries, getContainers, getTireModels, type StockEntry } from '../utils/storage';
-import { toast } from 'sonner@2.0.3';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { toast } from 'sonner';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export function DiscardReports() {
   const [discardedTires, setDiscardedTires] = useState<StockEntry[]>([]);

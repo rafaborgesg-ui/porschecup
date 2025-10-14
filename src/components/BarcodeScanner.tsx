@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, X, Zap, AlertCircle, FlipHorizontal, RotateCw } from 'lucide-react';
+import { X, Zap, AlertCircle, FlipHorizontal, RotateCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -54,10 +54,10 @@ export function BarcodeScanner({ onScan, onClose, isOpen }: BarcodeScannerProps)
       }
 
       // Screen Orientation API - força landscape (totalmente opcional)
-      if (screen.orientation && screen.orientation.lock) {
+      if (screen.orientation && (screen.orientation as any).lock) {
         try {
           originalOrientation.current = screen.orientation.type;
-          await screen.orientation.lock('landscape');
+          await (screen.orientation as any).lock('landscape');
           // Sucesso silencioso
         } catch (err: any) {
           // Falha silenciosa - nem todos os browsers suportam
@@ -247,7 +247,7 @@ export function BarcodeScanner({ onScan, onClose, isOpen }: BarcodeScannerProps)
             }, 800);
           }
         },
-        (errorMessage) => {
+        (_errorMessage) => {
           // Ignora erros normais de scan (muito verbosos)
           // console.log('🔍 Escaneando...', errorMessage);
         }
@@ -317,6 +317,44 @@ export function BarcodeScanner({ onScan, onClose, isOpen }: BarcodeScannerProps)
     await stopScanner();
     setTimeout(() => startScanner(), 500);
   };
+
+  // Evita estados "pausado": se a aba voltar a ser visível, tenta retomar
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && isOpen && !scanning) {
+        setTimeout(() => startScanner(), 300);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [isOpen, scanning]);
+
+  // Hide any HTML5QrCode default status messages
+  useEffect(() => {
+    if (isOpen) {
+      const hideStatusMessages = () => {
+        const readerElement = document.getElementById(readerElementId);
+        if (readerElement) {
+          // Hide any status divs that HTML5QrCode might create
+          const statusElements = readerElement.querySelectorAll('div:not(video):not(canvas)');
+          statusElements.forEach((el: any) => {
+            const text = el.textContent || el.innerText || '';
+            if (text.toLowerCase().includes('paused') || text.toLowerCase().includes('scanning') || text.toLowerCase().includes('started')) {
+              el.style.display = 'none';
+              el.style.visibility = 'hidden';
+              el.style.opacity = '0';
+            }
+          });
+        }
+      };
+
+      // Run immediately and then periodically to catch any dynamically created status elements
+      hideStatusMessages();
+      const interval = setInterval(hideStatusMessages, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, scanning]);
 
   const handleRotateInstruction = () => {
     // Vibração de alerta
@@ -401,8 +439,15 @@ export function BarcodeScanner({ onScan, onClose, isOpen }: BarcodeScannerProps)
               <div className="scanner-overlay-bottom" />
             </div>
 
-            {/* Instruções - Aparecem só em portrait */}
+            {/* Instruções - Aparecem só em portrait, com botão X para voltar */}
             <div className="scanner-rotate-instruction">
+              <button
+                onClick={handleClose}
+                aria-label="Fechar"
+                className="absolute top-4 right-4 text-white/90 hover:text-white bg-black/30 hover:bg-black/50 rounded-full p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
               <RotateCw 
                 className="w-12 h-12 text-white mb-4 animate-pulse" 
                 onClick={handleRotateInstruction}

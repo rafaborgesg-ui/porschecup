@@ -41,7 +41,8 @@
   "exclude": [
     "node_modules",
     "dist",
-    "build"
+    "build",
+    "src/supabase/functions"
   ],
   "references": [
     { "path": "./tsconfig.node.json" }

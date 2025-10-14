@@ -1698,6 +1698,25 @@ body {
   justify-content: center !important;
 }
 
+/* Hide HTML5QrCode default status messages (including "Scanner paused") */
+.scanner-video-element div[style*="position: absolute"],
+.scanner-video-element div[style*="top:"],
+.scanner-video-element div[style*="bottom:"],
+.scanner-video-element .qr-code-status,
+.scanner-video-element .html5-qrcode-element div:not(video):not(canvas) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Ensure only video and canvas from HTML5QrCode are visible */
+.scanner-video-element video,
+.scanner-video-element canvas {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
 /* Overlay escurecido */
 .scanner-overlay {
   position: absolute;

@@ -7,10 +7,10 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Checkbox } from './ui/checkbox';
+// import { Checkbox } from './ui/checkbox';
 import { Progress } from './ui/progress';
 import { Textarea } from './ui/textarea';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -763,7 +763,7 @@ export function TireMovement() {
                       <Label htmlFor="bulk-source">Contêiner de Origem</Label>
                       <Select 
                         value={bulkSourceContainer} 
-                        onValueChange={(value) => {
+                        onValueChange={(value: string) => {
                           setBulkSourceContainer(value);
                           setBulkFilterModel('all');
                           setBulkFilterType('all');
@@ -1035,7 +1035,7 @@ export function TireMovement() {
                   </Badge>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Registros por página:</span>
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value: string) => setItemsPerPage(Number(value))}>
                       <SelectTrigger className="w-24">
                         <SelectValue />
                       </SelectTrigger>

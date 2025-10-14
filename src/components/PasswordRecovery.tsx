@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import porscheCupLogo from 'figma:asset/3ae08ff326060d9638298673cda23da363101b9f.png';
 import { requestPasswordRecoveryAPI } from '../utils/api';

@@ -1,13 +1,15 @@
-import { LayoutDashboard, Package, CircleDot, Box, BarChart3, Menu, X, LogOut, Shield, Settings, Database, ArrowRightLeft, Trash2, ChevronDown, ChevronRight, FileText, UserCircle, Truck, Smartphone, Monitor, Globe, MapPin } from 'lucide-react';
+import { LayoutDashboard, Package, CircleDot, Box, BarChart3, Menu, X, LogOut, Shield, Settings, Database, ArrowRightLeft, Trash2, ChevronDown, FileText, UserCircle, Truck, Smartphone, Monitor, Globe, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import porscheCupLogo from 'figma:asset/3ae08ff326060d9638298673cda23da363101b9f.png';
 
 interface SidebarProps {
   currentModule: string;
   onModuleChange: (module: string) => void;
+  onLogout: () => void;
+  userRole?: string;
 }
 
-export function Sidebar({ currentModule, onModuleChange, onLogout, userRole = 'operator' }: SidebarProps) {
+export function Sidebar({ currentModule, onModuleChange, onLogout, userRole = 'operator' }: SidebarProps & { onLogout: () => void; userRole?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['pneus']); // "Pneus" expandido por padrão
   

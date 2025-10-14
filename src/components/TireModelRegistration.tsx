@@ -128,7 +128,7 @@ export function TireModelRegistration() {
                   <Label htmlFor="type">Tipo de Pneu *</Label>
                   <Select
                     value={formData.type}
-                    onValueChange={(value) => setFormData({ ...formData, type: value })}
+                    onValueChange={(value: string) => setFormData({ ...formData, type: value })}
                   >
                     <SelectTrigger className="mt-1.5">
                       <SelectValue placeholder="Selecione o tipo" />
@@ -185,7 +185,7 @@ export function TireModelRegistration() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Registros por página:</span>
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                     <Select value={itemsPerPage.toString()} onValueChange={(value: string) => setItemsPerPage(Number(value))}>
                       <SelectTrigger className="w-24">
                         <SelectValue />
                       </SelectTrigger>

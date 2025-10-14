@@ -53,7 +53,7 @@ export async function sendNotification(title: string, options?: NotificationOpti
     await registration.showNotification(title, {
       icon: '/icon-192.png',
       badge: '/icon-72.png',
-      vibrate: [200, 100, 200],
+      // vibrate: [200, 100, 200], // Removido: não suportado em todas as versões
       ...options,
     });
   }

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Toaster } from './components/ui/sonner';
 import { Sidebar } from './components/Sidebar';
 import { MobileNav } from './components/MobileNav';
-import { BottomNav } from './components/BottomNav';
 import { Dashboard } from './components/Dashboard';
 import { TireStockEntry } from './components/TireStockEntry';
 import { TireDiscard } from './components/TireDiscard';
@@ -34,7 +33,7 @@ export default function App() {
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [userRole, setUserRole] = useState<string>('operator');
   const [isLoading, setIsLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Sincronização com Supabase ATIVADA
@@ -281,13 +280,9 @@ export default function App() {
         userRole={userRole}
       />
       
-      {/* Bottom Navigation Mobile */}
-      <BottomNav
-        currentModule={currentModule}
-        onModuleChange={handleModuleChange}
-      />
+      {/* Bottom Navigation removido no mobile */}
       
-      <main className="flex-1 lg:ml-72 min-h-screen mobile-with-bottom-nav pb-safe no-overscroll">
+      <main className="flex-1 lg:ml-72 min-h-screen pb-safe no-overscroll">
         {currentModule === 'dashboard' && <Dashboard />}
         {currentModule === 'tire-stock' && <TireStockEntry />}
         {currentModule === 'tire-movement' && <TireMovement />}

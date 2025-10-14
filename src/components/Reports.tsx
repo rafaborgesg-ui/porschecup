@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, Package, TrendingUp, Calendar, Search, Truck, Box } from 'lucide-react';
+import { BarChart3, Package, TrendingUp, Calendar, Search, Truck } from 'lucide-react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts@2.15.2';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { getStockEntries, getTireModels, getContainers, type StockEntry } from '../utils/storage';
 
 interface StockSummary {
@@ -15,7 +15,7 @@ interface StockSummary {
   lastEntry: string;
 }
 
-import { ResponsiveTable } from './ResponsiveTable';
+// import { ResponsiveTable } from './ResponsiveTable';
 
 // Cores para gráficos - DEFINIDO NO TOPO
 const COLORS = ['#D50000', '#FF6B00', '#FFA500', '#FFD700', '#90EE90', '#4169E1', '#9370DB', '#FF69B4'];
@@ -27,9 +27,9 @@ export function Reports() {
   const [filterContainer, setFilterContainer] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(200);
+  const [itemsPerPage] = useState(200);
   const [historyPage, setHistoryPage] = useState(1);
-  const [historyItemsPerPage, setHistoryItemsPerPage] = useState(200);
+  const [historyItemsPerPage] = useState(200);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [historyFilterStatus, setHistoryFilterStatus] = useState('all');
 
@@ -76,7 +76,7 @@ export function Reports() {
 
   // Agrupa entradas por modelo e contêiner
   const stockSummary: StockSummary[] = filteredEntriesByStatus.reduce((acc: StockSummary[], entry) => {
-    const key = `${entry.modelName}-${entry.containerName}`;
+    // const key = `${entry.modelName}-${entry.containerName}`;
     const existing = acc.find(item => 
       item.model === entry.modelName && item.container === entry.containerName
     );
@@ -115,7 +115,7 @@ export function Reports() {
   const totalPages = Math.ceil(filteredSummary.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedData = filteredSummary.slice(startIndex, endIndex);
+  // const paginatedData = filteredSummary.slice(startIndex, endIndex);
 
   // Reset página quando filtros mudam
   useEffect(() => {
@@ -125,7 +125,7 @@ export function Reports() {
   // Reset página de histórico quando itens por página ou filtros mudam
   useEffect(() => {
     setHistoryPage(1);
-    console.log(`[Reports] Paginação alterada para: ${historyItemsPerPage} itens por página`);
+    console.log(`[Reports] Paginação do histórico alterada para: ${historyItemsPerPage} itens por página`);
   }, [historyItemsPerPage, historySearchTerm, historyFilterStatus]);
 
   // Prepara dados para o gráfico - agrupa por modelo (soma todos os containers)
@@ -191,6 +191,17 @@ export function Reports() {
       entries: containerEntries,
     };
   }).sort((a, b) => b.totalPneus - a.totalPneus);
+
+  // Filtra entradas para o histórico
+  const filteredHistoryEntries = entries.filter((entry: StockEntry) => {
+    const matchesSearch = historySearchTerm === '' || 
+      entry.barcode.toLowerCase().includes(historySearchTerm.toLowerCase());
+    
+    const matchesStatus = historyFilterStatus === 'all' || 
+      entry.status === historyFilterStatus;
+
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
     <div className="flex-1 px-2 py-2 sm:p-4 lg:p-8 w-full max-w-full">
@@ -503,7 +514,7 @@ export function Reports() {
               </Card>
             ) : (
               <div className="grid gap-6">
-                {containerGroups.map((container, idx) => (
+                {containerGroups.map((container) => (
                   <Card key={container.containerName} className="bg-white border border-gray-200 shadow-sm overflow-hidden" style={{ contain: 'layout style paint' }}>
                     <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
                       <div className="flex items-center justify-between">
@@ -544,11 +555,11 @@ export function Reports() {
                                 cy="50%"
                                 outerRadius={90}
                                 innerRadius={40}
-                                label={(entry) => `${entry.quantity}`}
+                                label={(entry: any) => `${entry.quantity}`}
                                 labelLine={true}
                                 animationDuration={800}
                               >
-                                {container.models.map((entry, index) => (
+                                {container.models.map((_, index) => (
                                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                               </Pie>
@@ -942,12 +953,139 @@ export function Reports() {
           <TabsContent value="history" className="w-full">
             <Card className="bg-white border border-gray-200 shadow-sm overflow-hidden" style={{ contain: 'layout style paint' }}>
               <div className="p-6 border-b border-gray-200">
-                <h3 className="text-gray-900">Histórico Completo</h3>
-                <p className="text-gray-500 text-sm">Todas as entradas registradas no sistema</p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h3 className="text-gray-900">Histórico Completo</h3>
+                    <p className="text-gray-500 text-sm">
+                      {entries.length} {entries.length === 1 ? 'registro' : 'registros'} no total
+                    </p>
+                  </div>
+                  
+                  {/* Filtros do Histórico */}
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        placeholder="Buscar código..."
+                        value={historySearchTerm}
+                        onChange={(e) => setHistorySearchTerm(e.target.value)}
+                        className="pl-9 w-full sm:w-48 h-9"
+                      />
+                    </div>
+                    
+                    <Select value={historyFilterStatus} onValueChange={setHistoryFilterStatus}>
+                      <SelectTrigger className="w-full sm:w-32 h-9">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="Novo">Novo</SelectItem>
+                        <SelectItem value="Ativo">Ativo</SelectItem>
+                        <SelectItem value="Descarte">Descarte</SelectItem>
+                        <SelectItem value="Piloto">Piloto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <div className="p-12 text-center text-gray-400">
-                <Calendar size={48} className="mx-auto mb-4 opacity-30" />
-                <p>Em construção</p>
+
+              <div className="overflow-x-auto">
+                {entries.length === 0 ? (
+                  <div className="p-12 text-center text-gray-400">
+                    <Calendar size={48} className="mx-auto mb-4 opacity-30" />
+                    <p>Nenhum registro encontrado</p>
+                  </div>
+                ) : (
+                  <>
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                            Código de Barras
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                            Modelo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                            Contêiner
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs text-gray-500 uppercase tracking-wider">
+                            Data/Hora
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {filteredHistoryEntries.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage).map((entry) => (
+                          <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-mono text-gray-900">{entry.barcode}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{entry.modelName}</div>
+                              <div className="text-xs text-gray-500">{entry.modelType}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{entry.containerName}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge
+                                variant="secondary"
+                                className={
+                                  entry.status === 'Novo' ? 'bg-blue-100 text-blue-700' :
+                                  entry.status === 'Ativo' ? 'bg-green-100 text-green-700' :
+                                  entry.status === 'Descarte' ? 'bg-red-100 text-red-700' :
+                                  entry.status === 'Piloto' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }
+                              >
+                                {entry.status || 'Novo'}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {new Date(entry.timestamp).toLocaleDateString('pt-BR')}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {new Date(entry.timestamp).toLocaleTimeString('pt-BR')}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {/* Paginação do Histórico */}
+                    {filteredHistoryEntries.length > historyItemsPerPage && (
+                      <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                          Mostrando {((historyPage - 1) * historyItemsPerPage) + 1} a {Math.min(historyPage * historyItemsPerPage, filteredHistoryEntries.length)} de {filteredHistoryEntries.length} registros
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
+                            disabled={historyPage === 1}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          >
+                            Anterior
+                          </button>
+                          <span className="text-sm text-gray-600">
+                            Página {historyPage} de {Math.ceil(filteredHistoryEntries.length / historyItemsPerPage)}
+                          </span>
+                          <button
+                            onClick={() => setHistoryPage(prev => Math.min(Math.ceil(filteredHistoryEntries.length / historyItemsPerPage), prev + 1))}
+                            disabled={historyPage === Math.ceil(filteredHistoryEntries.length / historyItemsPerPage)}
+                            className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          >
+                            Próxima
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </Card>
           </TabsContent>

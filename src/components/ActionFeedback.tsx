@@ -17,8 +17,8 @@ export function ActionFeedback({
   type, 
   message, 
   description, 
-  onClose,
-  duration = 3000 
+  // onClose,
+  // duration = 3000 
 }: ActionFeedbackProps) {
   const getIcon = () => {
     switch (type) {

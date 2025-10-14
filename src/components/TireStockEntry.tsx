@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, CheckCircle, X, Package as PackageIcon, AlertCircle, Keyboard, CheckCircle2, Camera } from 'lucide-react';
+import { Search, CheckCircle, X, Package as PackageIcon, AlertCircle, Keyboard, CheckCircle2, Camera, Focus } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Progress } from './ui/progress';
 import { Skeleton } from './ui/skeleton';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { BarcodeScanner } from './BarcodeScanner';
 import {
   AlertDialog,
@@ -22,7 +22,6 @@ import {
 import { 
   getTireModels, 
   getContainers, 
-  getStockEntries,
   saveStockEntry, 
   deleteStockEntry,
   checkBarcodeExists,
@@ -58,6 +57,7 @@ export function TireStockEntry() {
   const [showScanner, setShowScanner] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [modelCounts, setModelCounts] = useState<Record<string, number>>({});
+  const [autoFocusEnabled, setAutoFocusEnabled] = useState<boolean>(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastShortcutTime = useRef<number>(0);
   const allowAutoFocus = useRef<boolean>(true);
@@ -84,6 +84,12 @@ export function TireStockEntry() {
       setShortcutMode(savedMode);
     }
 
+    // Carrega preferência de auto-foco
+    const savedAutoFocus = localStorage.getItem('auto-focus-enabled');
+    if (savedAutoFocus !== null) {
+      setAutoFocusEnabled(savedAutoFocus === 'true');
+    }
+
     // Detecta se é dispositivo móvel
     const checkMobile = () => {
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -101,6 +107,11 @@ export function TireStockEntry() {
     
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Salva preferência de auto-foco quando mudado
+  useEffect(() => {
+    localStorage.setItem('auto-focus-enabled', autoFocusEnabled.toString());
+  }, [autoFocusEnabled]);
 
   // Escuta mudanças nos modelos de pneus
   useEffect(() => {
@@ -238,6 +249,11 @@ export function TireStockEntry() {
   // Mantém o foco sempre no input de código de barras (com controle inteligente)
   useEffect(() => {
     const interval = setInterval(() => {
+      // Não força foco se o auto-foco está desabilitado
+      if (!autoFocusEnabled) {
+        return;
+      }
+
       // Não força foco se atalho foi usado recentemente
       if (!allowAutoFocus.current) {
         return;
@@ -258,7 +274,7 @@ export function TireStockEntry() {
     }, 100); // Verifica a cada 100ms
 
     return () => clearInterval(interval);
-  }, []);
+  }, [autoFocusEnabled]);
 
   // Auto-submit quando atingir exatamente 8 dígitos numéricos
   useEffect(() => {
@@ -315,7 +331,7 @@ export function TireStockEntry() {
       barcode: barcodeValue,
       modelId: model.id,
       modelName: model.name,
-      modelType: model.type,
+      modelType: model.type as 'Slick' | 'Wet',
       containerId: container.id,
       containerName: container.name,
       timestamp: new Date().toISOString(),
@@ -447,7 +463,7 @@ export function TireStockEntry() {
 
   const selectedModelData = tireModels.find(m => m.id === selectedModel);
   const selectedContainerData = containers.find(c => c.id === selectedContainer);
-  const modelEntries = entries.filter(e => e.model === selectedModelData?.name);
+  // const modelEntries = entries.filter(e => e.model === selectedModelData?.name);
 
   if (tireModels.length === 0) {
     return (
@@ -473,16 +489,29 @@ export function TireStockEntry() {
           <h1 className="text-gray-900 mb-1 truncate">Entrada de Estoque</h1>
           <p className="text-gray-500 text-xs sm:text-sm truncate">Registro rápido de pneus no sistema</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleShortcutMode}
-          className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 sm:px-3 flex-shrink-0"
-        >
-          <Keyboard size={14} className="sm:w-4 sm:h-4" />
-          <span className="hidden sm:inline text-xs sm:text-sm">Atalhos:</span>
-          <span className="font-mono text-xs sm:text-sm font-bold">{shortcutMode === 'numeric' ? '1-7' : 'A-G'}</span>
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAutoFocusEnabled(!autoFocusEnabled)}
+            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 ${autoFocusEnabled ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
+            title={autoFocusEnabled ? 'Desativar foco automático' : 'Ativar foco automático'}
+          >
+            <Focus size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline text-xs sm:text-sm">Auto-foco</span>
+            <span className="text-xs sm:text-sm font-bold">{autoFocusEnabled ? 'ON' : 'OFF'}</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleShortcutMode}
+            className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 sm:px-3"
+          >
+            <Keyboard size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline text-xs sm:text-sm">Atalhos:</span>
+            <span className="font-mono text-xs sm:text-sm font-bold">{shortcutMode === 'numeric' ? '1-7' : 'A-G'}</span>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 w-full max-w-full">
@@ -689,7 +718,7 @@ export function TireStockEntry() {
                   const numericValue = value.replace(/\D/g, '').slice(0, 8);
                   setBarcode(numericValue);
                 }}
-                onFocus={(e) => {
+                onFocus={() => {
                   console.log('📸 Campo focado');
                   // Não abre mais a câmera automaticamente
                   // Usuário deve clicar no ícone da câmera para abrir
@@ -761,20 +790,7 @@ export function TireStockEntry() {
               </div>
             )}
 
-            {/* Scanner de Câmera - Aparece em Mobile */}
-            {isMobile && (
-              <Button
-                type="button"
-                onClick={() => {
-                  console.log('📸 Botão câmera clicado (botão grande)');
-                  setShowScanner(true);
-                }}
-                className="w-full py-6 bg-gradient-to-r from-[#D50000] to-[#A80000] text-white hover:from-[#A80000] hover:to-[#8B0000] rounded-xl flex items-center justify-center gap-3 transition-all shadow-md text-base font-semibold"
-              >
-                <Camera size={24} />
-                <span>📷 Abrir Câmera para Escanear</span>
-              </Button>
-            )}
+            {/* Botão grande de abrir câmera removido em mobile (ícone no input já cobre a funcionalidade) */}
 
             <Button 
               type="submit" 

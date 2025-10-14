@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -124,8 +124,8 @@ export function TireDiscard() {
       return;
     }
 
-    // Atualiza o status para Descarte
-    const success = updateStockEntry(trimmedBarcode, { status: 'Descarte' });
+  // Atualiza o status para Descarte e limpa a alocação do contêiner
+  const success = updateStockEntry(trimmedBarcode, { status: 'Descarte', containerId: '', containerName: '' });
 
     if (success) {
       // Adiciona à lista de descartados na sessão

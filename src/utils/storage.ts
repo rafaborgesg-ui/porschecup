@@ -22,7 +22,7 @@ export interface StockEntry {
   containerId: string;
   containerName: string;
   timestamp: string;
-  status?: 'Novo' | 'Ativo' | 'Descarte';
+  status?: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto';
 }
 
 const STORAGE_KEYS = {
@@ -138,8 +138,9 @@ export function getStockEntries(includeDiscarded: boolean = false): StockEntry[]
       if (includeDiscarded) {
         return entries;
       }
-      // Por padrão, retorna apenas pneus ativos e novos (não descartados)
-      return entries.filter((e: StockEntry) => !e.status || e.status === 'Novo' || e.status === 'Ativo');
+      // Por padrão, retorna todos os pneus que NÃO estão descartados
+      // Inclui: Novo, Ativo, Piloto e quaisquer outros status personalizados diferentes de "Descarte"
+      return entries.filter((e: StockEntry) => e.status !== 'Descarte');
     }
     return [];
   } catch {

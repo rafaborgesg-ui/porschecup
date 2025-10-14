@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Package, CheckCircle2, Search, Filter, X, AlertCircle, ArrowRight, Barcode, Layers, FileUp, Download } from 'lucide-react';
+import { RefreshCw, Package, CheckCircle2, Filter, AlertCircle, Barcode, Layers, FileUp, Download } from 'lucide-react';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { getStockEntries, updateStockEntry, getTireModels, getContainers, getTireStatus, type StockEntry, type TireStatus, type TireModel, type Container } from '../utils/storage';
 
 export function TireStatusChange() {
@@ -118,7 +118,9 @@ export function TireStatusChange() {
 
     const updatedEntry = {
       ...selectedTire,
-      status: individualStatus,
+      status: individualStatus as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
+      // Limpa contêiner apenas se for descarte
+      ...(individualStatus === 'Descarte' ? { containerId: '', containerName: '' } : {}),
       updatedAt: new Date().toISOString(),
     };
 
@@ -260,7 +262,9 @@ export function TireStatusChange() {
     selectedTires.forEach(tire => {
       const updatedEntry = {
         ...tire,
-        status: bulkNewStatus,
+        status: bulkNewStatus as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
+        // Limpa contêiner apenas se for descarte
+        ...(bulkNewStatus === 'Descarte' ? { containerId: '', containerName: '' } : {}),
         updatedAt: new Date().toISOString(),
       };
 
@@ -521,7 +525,7 @@ export function TireStatusChange() {
                       <Label htmlFor="bulk-source">Contêiner de Origem</Label>
                       <Select 
                         value={bulkSourceContainer} 
-                        onValueChange={(value) => {
+                        onValueChange={(value: string) => {
                           setBulkSourceContainer(value);
                           setBulkFilterModel('all');
                           setBulkFilterType('all');
