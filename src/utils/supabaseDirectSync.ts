@@ -196,7 +196,21 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
     console.log(`📊 Container ID Map:`, containerIdMap);
 
     // Mapeia para o formato esperado pela tabela
-    const entriesForDB: any[] = [];
+    const entriesForDB: {
+      barcode: string;
+      model_id: string;
+      model_name: string;
+      model_type: string;
+      container_id: string | null;
+      container_name: string | null;
+      status: string;
+      session_id: string | null;
+      pilot: string | null;
+      team: string | null;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }[] = [];
     const failedEntries: any[] = [];
 
     entries.forEach((entry, index) => {
@@ -475,9 +489,17 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
           timestamp: entry.created_at
         }));
         
-        // Salva no localStorage
-        localStorage.setItem('porsche-cup-tire-entries', JSON.stringify(localEntries));
-        console.log(`📦 Synced ${localEntries.length} stock entries from Supabase`);
+  // MERGE: preserva registros locais que não estão no Supabase
+  const localRaw = localStorage.getItem('porsche-cup-tire-entries');
+  const localExisting: any[] = localRaw ? JSON.parse(localRaw) : [];
+  // Cria mapa de barcodes do Supabase
+  const supabaseBarcodes = new Set(localEntries.map(e => e.barcode));
+  // Filtra registros locais que não estão no Supabase
+  const onlyLocal = localExisting.filter(e => !supabaseBarcodes.has(e.barcode));
+  // Junta tudo: Supabase + locais não enviados
+  const mergedEntries = [...localEntries, ...onlyLocal];
+  localStorage.setItem('porsche-cup-tire-entries', JSON.stringify(mergedEntries));
+  console.log(`📦 Synced ${localEntries.length} stock entries from Supabase (merged, total: ${mergedEntries.length})`);
       }
     } catch (err) {
       console.error('Error syncing stock entries from Supabase:', err);
