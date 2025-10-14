@@ -2,6 +2,20 @@
 
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
+## [v1.3.1] - 2025-10-14
+
+### 🖼️ Atualização de Ícone PWA
+- **Novo Ícone**: Adicionado `PorscheCupiconeAPP.png` (896KB) de alta qualidade
+- **Manifest.json**: Todos os ícones atualizados para usar o novo arquivo
+- **Favicons**: Atualizado em `index.html` e `src/index.html`
+- **Service Worker**: Ícones de notificação push atualizados
+- **Cache Version**: Incrementado para `v2` para forçar atualização nos clientes
+
+### 📱 Melhorias PWA
+- Ícone consistente em todos os contextos (app, shortcuts, notificações)
+- Apple touch icons atualizados para iOS
+- Melhor qualidade visual do ícone do app
+
 ## [v1.3.0] - 2025-10-14
 
 ### ✨ Novas Funcionalidades

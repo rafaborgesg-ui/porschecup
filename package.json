@@ -1,7 +1,7 @@
 
   {
       "name": "porsche-cup",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "private": false,
       "description": "Sistema de gerenciamento para Porsche Cup - Aplicação web moderna para controle de estoque de pneus",
       "keywords": ["porsche", "racing", "tire-management", "react", "vite", "typescript"],
