@@ -2,6 +2,41 @@
 
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
+## [v1.3.0] - 2025-10-14
+
+### ✨ Novas Funcionalidades
+- **Sincronização Bidirecional**: Sistema completo de sync entre localStorage e Supabase
+- **Monitor de Sincronização**: Componente visual para acompanhar status da sincronização
+- **Debug Avançado**: Sistema de logs detalhado para diagnóstico de problemas
+- **Merge Inteligente**: Prevenção de perda de dados durante sincronização
+- **Sync Engine**: Nova engine `supabaseDirectSync.ts` para gerenciamento robusto
+
+### 🔧 Correções Críticas
+- **localStorage + Supabase**: Correção do merge para evitar perda de dados locais
+- **Model ID Null**: Fix na sincronização de `stock_entries` com `model_id` nulo
+- **Transferência para Piloto**: Correção na funcionalidade de transferência de pneus
+- **Race Conditions**: Prevenção de condições de corrida na sincronização
+- **Error Handling**: Tratamento robusto de erros durante sync
+
+### 📊 Melhorias de UX
+- **Interface Mobile**: Otimizações específicas para dispositivos móveis
+- **Feedback Visual**: Indicadores de status de sincronização
+- **Relatórios Detalhados**: Informações mais completas nos relatórios
+- **Gestão de Usuários**: Interface aprimorada para administração
+
+### 🛠️ Arquivos Técnicos Adicionados
+- `src/utils/supabaseDirectSync.ts`: Nova engine de sincronização
+- `src/components/SupabaseSyncMonitor.tsx`: Monitor visual de sync
+- `debug_cadastro_local.md`: Debug para problemas de cadastro local
+- `debug_sync_failure.md`: Debug para falhas de sincronização
+- `debug_tire_consumption.md`: Debug para consumo de pneus
+- `supabase_user_profiles_insert_policy.sql`: Políticas RLS atualizadas
+
+### 🚀 Deploy e Infraestrutura
+- **Build Otimizado**: Bundle atualizado com novas funcionalidades
+- **GitHub Release**: Tag v1.3.0 com documentação completa
+- **Vercel Ready**: Preparado para deploy automático
+
 ## [v1.2.0] - 2025-10-13
 
 ### ✨ Novidades
