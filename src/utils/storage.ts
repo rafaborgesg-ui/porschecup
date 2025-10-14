@@ -23,6 +23,10 @@ export interface StockEntry {
   containerName: string;
   timestamp: string;
   status?: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto';
+  sessionId?: string;
+  pilot?: string;
+  team?: string;
+  notes?: string;
 }
 
 const STORAGE_KEYS = {

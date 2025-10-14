@@ -200,10 +200,10 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
       container_id: containerIdMap[entry.containerName] || null,
       container_name: entry.containerName || null,
       status: entry.status || 'Novo',
-      session_id: null,
-      pilot: null,
-      team: null,
-      notes: null,
+      session_id: entry.sessionId || null,
+      pilot: entry.pilot || null,
+      team: entry.team || null,
+      notes: entry.notes || null,
       created_at: new Date(entry.timestamp).toISOString(),
       updated_at: new Date().toISOString()
     }));
@@ -308,12 +308,12 @@ export async function syncTireConsumptionToSupabase(): Promise<boolean> {
       barcode: record.barcode,
       model_name: record.modelName,
       model_type: record.modelType,
-        container_name: record.containerName || null,
-        pilot: record.consumedBy || record.pilot || null,
-        team: record.team || null,
-        notes: record.reason || record.notes || null,
-      registered_by: isUUID(record.registeredBy) ? record.registeredBy : (authUser?.id ?? null),
-      registered_by_name: record.registeredByName || authUser?.user_metadata?.name || authUser?.user_metadata?.full_name || authUser?.email || null,
+      container_name: record.containerName || null,
+      pilot: record.pilot || null,
+      team: record.team || null,
+      notes: record.notes || null,
+      registered_by: authUser?.id ?? null,
+      registered_by_name: record.registeredBy || authUser?.user_metadata?.name || authUser?.user_metadata?.full_name || authUser?.email || null,
       created_at: new Date(record.timestamp).toISOString()
     }));
 
