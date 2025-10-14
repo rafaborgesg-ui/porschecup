@@ -190,32 +190,89 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
       getContainerIdByName()
     ]);
 
-    // Mapeia para o formato esperado pela tabela
-    const entriesForDB = entries.map(entry => ({
-      // Não enviar id (UUID gerado pelo banco). barcode é UNIQUE natural
-      barcode: entry.barcode,
-      model_id: modelIdMap[entry.modelId] || modelIdMap[entry.modelName] || modelIdMap[entry.modelType] || null,
-      model_name: entry.modelName,
-      model_type: entry.modelType,
-      container_id: containerIdMap[entry.containerName] || null,
-      container_name: entry.containerName || null,
-      status: entry.status || 'Novo',
-      session_id: entry.sessionId || null,
-      pilot: entry.pilot || null,
-      team: entry.team || null,
-      notes: entry.notes || null,
-      created_at: new Date(entry.timestamp).toISOString(),
-      updated_at: new Date().toISOString()
-    }));
+    // Log detalhado para debug
+    console.log(`📊 Sync Debug - Total entries to sync: ${entries.length}`);
+    console.log(`📊 Model ID Map:`, modelIdMap);
+    console.log(`📊 Container ID Map:`, containerIdMap);
 
-    const { error } = await supabase
+    // Mapeia para o formato esperado pela tabela
+    const entriesForDB: any[] = [];
+    const failedEntries: any[] = [];
+
+    entries.forEach((entry, index) => {
+      const model_id = modelIdMap[entry.modelId] || modelIdMap[entry.modelName] || modelIdMap[entry.modelType];
+      
+      if (!model_id) {
+        console.error(`❌ SKIP Entry ${index + 1}: No model_id found for modelId:'${entry.modelId}', modelName:'${entry.modelName}', modelType:'${entry.modelType}'`);
+        failedEntries.push({
+          barcode: entry.barcode,
+          reason: 'model_id not found',
+          entry
+        });
+        return;
+      }
+
+      const mapped = {
+        // Não enviar id (UUID gerado pelo banco). barcode é UNIQUE natural
+        barcode: entry.barcode,
+        model_id: model_id,
+        model_name: entry.modelName,
+        model_type: entry.modelType,
+        container_id: containerIdMap[entry.containerName] || null,
+        container_name: entry.containerName || null,
+        status: entry.status || 'Novo',
+        session_id: entry.sessionId || null,
+        pilot: entry.pilot || null,
+        team: entry.team || null,
+        notes: entry.notes || null,
+        created_at: new Date(entry.timestamp).toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Log problemas de mapeamento de container (não crítico)
+      if (!mapped.container_id) {
+        console.warn(`⚠️ Entry ${index + 1}: No container_id found for containerName:'${entry.containerName}' - will be NULL`);
+      }
+
+      entriesForDB.push(mapped);
+    });
+
+    console.log(`📊 Valid entries for DB: ${entriesForDB.length}`);
+    console.log(`📊 Failed entries: ${failedEntries.length}`);
+    
+    if (failedEntries.length > 0) {
+      console.error(`❌ Failed entries details:`, failedEntries);
+      addSyncLog({ 
+        table: 'stock_entries', 
+        operation: 'error', 
+        message: `${failedEntries.length} entries skipped due to missing model_id` 
+      });
+    }
+    
+    if (entriesForDB.length === 0) {
+      addSyncLog({ table: 'stock_entries', operation: 'error', message: 'No valid entries to sync' });
+      return false;
+    }
+
+    console.log(`📊 Sample valid entry:`, entriesForDB[0]);
+
+    console.log(`🚀 Attempting to upsert ${entriesForDB.length} entries to Supabase...`);
+    
+    const { data, error } = await supabase
       .from('stock_entries')
-      .upsert(entriesForDB, { onConflict: 'barcode', ignoreDuplicates: false });
+      .upsert(entriesForDB, { onConflict: 'barcode', ignoreDuplicates: false })
+      .select();
 
     if (error) {
+      console.error('❌ Upsert error details:', error);
       addSyncLog({ table: 'stock_entries', operation: 'error', message: error.message });
       console.error('Error syncing stock entries:', error);
       return false;
+    }
+
+    console.log(`✅ Upsert successful! Rows affected: ${data ? data.length : 'unknown'}`);
+    if (data) {
+      console.log(`✅ Successfully inserted/updated entries:`, data.map((d: any) => d.barcode));
     }
 
     addSyncLog({ table: 'stock_entries', operation: 'sync', count: entries.length, message: 'Synced successfully' });
