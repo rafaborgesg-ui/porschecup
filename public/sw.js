@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'porsche-cup-v1';
+const CACHE_NAME = 'porsche-cup-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -61,8 +61,8 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data.text(),
-    icon: '/icon-192.png',
-    badge: '/icon-72.png',
+  icon: '/PorscheCupiconeAPP.png',
+  badge: '/PorscheCupiconeAPP.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),

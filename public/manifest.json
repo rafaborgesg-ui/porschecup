@@ -10,7 +10,7 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/porsche-cup-icon.png",
+      "src": "/PorscheCupiconeAPP.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -23,21 +23,21 @@
       "short_name": "Dashboard",
       "description": "Acessar dashboard principal",
       "url": "/?module=dashboard",
-      "icons": [{ "src": "/porsche-cup-icon.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/PorscheCupiconeAPP.png", "sizes": "512x512" }]
     },
     {
       "name": "Entrada de Estoque",
       "short_name": "Estoque",
       "description": "Registrar novos pneus",
       "url": "/?module=tire-stock",
-      "icons": [{ "src": "/porsche-cup-icon.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/PorscheCupiconeAPP.png", "sizes": "512x512" }]
     },
     {
       "name": "Consumo",
       "short_name": "Consumo",
       "description": "Ativar pneus para uso",
       "url": "/?module=tire-consumption",
-      "icons": [{ "src": "/porsche-cup-icon.png", "sizes": "512x512" }]
+      "icons": [{ "src": "/PorscheCupiconeAPP.png", "sizes": "512x512" }]
     }
   ]
 }
