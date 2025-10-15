@@ -50,12 +50,12 @@ DROP POLICY IF EXISTS "freight_requests_delete_policy" ON public.freight_request
 -- 2. REMOVER FUNÇÕES ANTIGAS QUE DEPENDEM DE USER_PROFILES
 -- ============================================
 
-DROP FUNCTION IF EXISTS public.is_admin();
-DROP FUNCTION IF EXISTS public.is_active_user();
-DROP FUNCTION IF EXISTS public.handle_new_user();
-DROP FUNCTION IF EXISTS public.protect_default_tire_status();
-DROP FUNCTION IF EXISTS public.can_move_tire(VARCHAR);
-DROP FUNCTION IF EXISTS public.get_dashboard_stats();
+DROP FUNCTION IF EXISTS public.is_admin() CASCADE;
+DROP FUNCTION IF EXISTS public.is_active_user() CASCADE;
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS public.protect_default_tire_status() CASCADE;
+DROP FUNCTION IF EXISTS public.can_move_tire(VARCHAR) CASCADE;
+DROP FUNCTION IF EXISTS public.get_dashboard_stats() CASCADE;
 
 -- ============================================
 -- 3. REMOVER TRIGGERS E TABELA USER_PROFILES
