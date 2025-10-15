@@ -108,18 +108,19 @@ CREATE POLICY "tire_status_delete_policy" ON public.tire_status
 -- POLÍTICAS - TIRE_MODELS
 -- ============================================
 
+-- SELECT: Todos podem visualizar (incluindo anônimos para inicialização)
 CREATE POLICY "tire_models_select_policy" ON public.tire_models
     FOR SELECT
-    USING (is_active_user());
+    USING (TRUE);
 
 CREATE POLICY "tire_models_insert_policy" ON public.tire_models
     FOR INSERT
-    WITH CHECK (is_admin());
+    WITH CHECK (is_active_user() OR is_admin());
 
 CREATE POLICY "tire_models_update_policy" ON public.tire_models
     FOR UPDATE
-    USING (is_admin())
-    WITH CHECK (is_admin());
+    USING (is_active_user() OR is_admin())
+    WITH CHECK (is_active_user() OR is_admin());
 
 CREATE POLICY "tire_models_delete_policy" ON public.tire_models
     FOR DELETE
@@ -129,18 +130,19 @@ CREATE POLICY "tire_models_delete_policy" ON public.tire_models
 -- POLÍTICAS - CONTAINERS
 -- ============================================
 
+-- SELECT: Todos podem visualizar (incluindo anônimos para inicialização)
 CREATE POLICY "containers_select_policy" ON public.containers
     FOR SELECT
-    USING (is_active_user());
+    USING (TRUE);
 
 CREATE POLICY "containers_insert_policy" ON public.containers
     FOR INSERT
-    WITH CHECK (is_admin());
+    WITH CHECK (is_active_user() OR is_admin());
 
 CREATE POLICY "containers_update_policy" ON public.containers
     FOR UPDATE
-    USING (is_admin())
-    WITH CHECK (is_admin());
+    USING (is_active_user() OR is_admin())
+    WITH CHECK (is_active_user() OR is_admin());
 
 CREATE POLICY "containers_delete_policy" ON public.containers
     FOR DELETE
@@ -230,14 +232,36 @@ CREATE POLICY "freight_requests_delete_policy" ON public.freight_requests
     USING (is_admin());
 
 -- ============================================
--- GARANTIR PERMISSÕES PARA ROLE ANON
+-- GARANTIR PERMISSÕES PARA ROLES ANON E AUTHENTICATED
 -- ============================================
 
--- Permitir anon ler tire_status (necessário para inicialização)
-GRANT SELECT ON public.tire_status TO anon;
+-- Permitir leitura de tire_status (necessário para inicialização)
+GRANT SELECT ON public.tire_status TO anon, authenticated;
+GRANT INSERT ON public.tire_status TO anon, authenticated;
+GRANT UPDATE ON public.tire_status TO authenticated;
 
--- Permitir anon inserir tire_status padrão (apenas durante inicialização)
-GRANT INSERT ON public.tire_status TO anon;
+-- Permitir leitura de tire_models (necessário para cadastros)
+GRANT SELECT ON public.tire_models TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.tire_models TO authenticated;
+
+-- Permitir leitura de containers (necessário para cadastros)
+GRANT SELECT ON public.containers TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.containers TO authenticated;
+
+-- Permitir operações em stock_entries
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.stock_entries TO authenticated;
+
+-- Permitir operações em tire_movements
+GRANT SELECT, INSERT ON public.tire_movements TO authenticated;
+
+-- Permitir operações em tire_consumption
+GRANT SELECT, INSERT ON public.tire_consumption TO authenticated;
+
+-- Permitir operações em user_profiles
+GRANT SELECT, INSERT, UPDATE ON public.user_profiles TO authenticated;
+
+-- Permitir operações em freight_requests
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.freight_requests TO authenticated;
 
 -- ============================================
 -- VERIFICAÇÃO FINAL

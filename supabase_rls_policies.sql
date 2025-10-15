@@ -49,17 +49,17 @@ $$ language 'plpgsql' SECURITY DEFINER;
 -- RLS POLICIES - TIRE MODELS
 -- ============================================
 
--- Qualquer usuário ativo pode ver os modelos
+-- Todos podem visualizar (incluindo anônimos para inicialização)
 CREATE POLICY "tire_models_select_policy" ON public.tire_models
-    FOR SELECT USING (public.is_active_user());
+    FOR SELECT USING (TRUE);
 
--- Apenas admins podem inserir modelos
+-- Usuários ativos podem inserir modelos
 CREATE POLICY "tire_models_insert_policy" ON public.tire_models
-    FOR INSERT WITH CHECK (public.is_admin());
+    FOR INSERT WITH CHECK (public.is_active_user() OR public.is_admin());
 
--- Apenas admins podem atualizar modelos
+-- Usuários ativos podem atualizar modelos
 CREATE POLICY "tire_models_update_policy" ON public.tire_models
-    FOR UPDATE USING (public.is_admin());
+    FOR UPDATE USING (public.is_active_user() OR public.is_admin());
 
 -- Apenas admins podem deletar modelos
 CREATE POLICY "tire_models_delete_policy" ON public.tire_models
@@ -69,17 +69,17 @@ CREATE POLICY "tire_models_delete_policy" ON public.tire_models
 -- RLS POLICIES - CONTAINERS
 -- ============================================
 
--- Qualquer usuário ativo pode ver os containers
+-- Todos podem visualizar (incluindo anônimos para inicialização)
 CREATE POLICY "containers_select_policy" ON public.containers
-    FOR SELECT USING (public.is_active_user());
+    FOR SELECT USING (TRUE);
 
--- Apenas admins podem inserir containers
+-- Usuários ativos podem inserir containers
 CREATE POLICY "containers_insert_policy" ON public.containers
-    FOR INSERT WITH CHECK (public.is_admin());
+    FOR INSERT WITH CHECK (public.is_active_user() OR public.is_admin());
 
--- Apenas admins podem atualizar containers
+-- Usuários ativos podem atualizar containers
 CREATE POLICY "containers_update_policy" ON public.containers
-    FOR UPDATE USING (public.is_admin());
+    FOR UPDATE USING (public.is_active_user() OR public.is_admin());
 
 -- Apenas admins podem deletar containers
 CREATE POLICY "containers_delete_policy" ON public.containers
@@ -329,6 +329,38 @@ GRANT EXECUTE ON FUNCTION public.is_active_user() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.can_move_tire(VARCHAR) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_dashboard_stats() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.protect_default_tire_status() TO authenticated;
+
+-- ============================================
+-- GRANT PERMISSIONS PARA TABELAS
+-- ============================================
+
+-- Permitir leitura de tire_status (necessário para inicialização)
+GRANT SELECT ON public.tire_status TO anon, authenticated;
+GRANT INSERT ON public.tire_status TO anon, authenticated;
+GRANT UPDATE ON public.tire_status TO authenticated;
+
+-- Permitir leitura de tire_models (necessário para cadastros)
+GRANT SELECT ON public.tire_models TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.tire_models TO authenticated;
+
+-- Permitir leitura de containers (necessário para cadastros)
+GRANT SELECT ON public.containers TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.containers TO authenticated;
+
+-- Permitir operações em stock_entries
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.stock_entries TO authenticated;
+
+-- Permitir operações em tire_movements
+GRANT SELECT, INSERT ON public.tire_movements TO authenticated;
+
+-- Permitir operações em tire_consumption
+GRANT SELECT, INSERT ON public.tire_consumption TO authenticated;
+
+-- Permitir operações em user_profiles
+GRANT SELECT, INSERT, UPDATE ON public.user_profiles TO authenticated;
+
+-- Permitir operações em freight_requests
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.freight_requests TO authenticated;
 
 -- ============================================
 -- COMENTÁRIOS PARA DOCUMENTAÇÃO
