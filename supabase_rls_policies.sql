@@ -89,13 +89,15 @@ CREATE POLICY "containers_delete_policy" ON public.containers
 -- RLS POLICIES - TIRE STATUS
 -- ============================================
 
--- Qualquer usuário ativo pode ver os status
+-- Todos (incluindo anon) podem ver os status para inicialização
 CREATE POLICY "tire_status_select_policy" ON public.tire_status
-    FOR SELECT USING (public.is_active_user());
+    FOR SELECT USING (TRUE);
 
--- Apenas admins podem inserir status personalizados
+-- Permite inserção de status padrão durante inicialização + admins podem inserir customizados
 CREATE POLICY "tire_status_insert_policy" ON public.tire_status
-    FOR INSERT WITH CHECK (public.is_admin());
+    FOR INSERT WITH CHECK (
+        is_default = TRUE OR public.is_admin()
+    );
 
 -- Apenas admins podem atualizar status
 CREATE POLICY "tire_status_update_policy" ON public.tire_status
@@ -231,7 +233,9 @@ GRANT INSERT, UPDATE, DELETE ON TABLE public.containers TO authenticated;
 
 -- Tire Status
 GRANT SELECT ON TABLE public.tire_status TO authenticated;
+GRANT SELECT ON TABLE public.tire_status TO anon;
 GRANT INSERT, UPDATE, DELETE ON TABLE public.tire_status TO authenticated;
+GRANT INSERT ON TABLE public.tire_status TO anon;
 
 -- Stock Entries
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.stock_entries TO authenticated;
