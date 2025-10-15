@@ -67,7 +67,6 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
       pilot: record.pilot || null,
       team: record.team || null,
       notes: record.notes || null,
-      registered_by: user?.id || null,
       registered_by_name: user?.name || record.registeredBy || null,
       created_at: new Date(record.timestamp).toISOString()
     };
