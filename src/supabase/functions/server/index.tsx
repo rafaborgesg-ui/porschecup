@@ -1,3 +1,9 @@
+// @ts-nocheck
+// Nota: Este arquivo é uma Supabase Edge Function (Deno runtime).
+// Ele usa imports no formato `npm:` e a API global `Deno`, que não são
+// reconhecidos pelo TypeScript do workspace (configurado para bundlers Node/Vite).
+// A validação de tipos é desabilitada aqui para evitar falsos positivos no editor.
+// A compilação/execução real ocorre no ambiente do Supabase (Deno) após o deploy da função.
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";

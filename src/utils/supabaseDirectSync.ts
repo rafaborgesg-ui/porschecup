@@ -493,7 +493,7 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
   const localRaw = localStorage.getItem('porsche-cup-tire-entries');
   const localExisting: any[] = localRaw ? JSON.parse(localRaw) : [];
   // Cria mapa de barcodes do Supabase
-  const supabaseBarcodes = new Set(localEntries.map(e => e.barcode));
+  const supabaseBarcodes = new Set(localEntries.map((e: { barcode: string }) => e.barcode));
   // Filtra registros locais que não estão no Supabase
   const onlyLocal = localExisting.filter(e => !supabaseBarcodes.has(e.barcode));
   // Junta tudo: Supabase + locais não enviados
