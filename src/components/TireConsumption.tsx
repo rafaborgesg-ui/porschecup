@@ -47,19 +47,47 @@ function getConsumptionRecords(): ConsumptionRecord[] {
   }
 }
 
-function saveConsumptionRecord(record: ConsumptionRecord): void {
+async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
   try {
+    // Salva no localStorage
     const records = getConsumptionRecords();
     records.push(record);
     localStorage.setItem(CONSUMPTION_KEY, JSON.stringify(records));
-    // Dispara evento para sincronização com Supabase
+    
+    // Salva no Supabase
+    const { createClient, getCurrentUser } = await import('../utils/supabase/client');
+    const supabase = createClient();
+    const user = await getCurrentUser();
+    
+    const recordForDB = {
+      barcode: record.barcode,
+      model_name: record.modelName,
+      model_type: record.modelType,
+      container_name: record.containerName,
+      pilot: record.pilot || null,
+      team: record.team || null,
+      notes: record.notes || null,
+      registered_by: user?.id || null,
+      registered_by_name: user?.name || record.registeredBy || null,
+      created_at: new Date(record.timestamp).toISOString()
+    };
+    
+    const { error } = await supabase.from('tire_consumption').insert([recordForDB]);
+    
+    if (error) {
+      console.error('Erro ao salvar registro de consumo no Supabase:', error);
+    } else {
+      console.log('✅ Registro de consumo salvo no Supabase:', recordForDB.barcode);
+    }
+    
+    // Dispara evento para sincronização
     window.dispatchEvent(new Event('tire-consumption-updated'));
   } catch (error) {
     console.error('Erro ao salvar registro de consumo:', error);
   }
 }
 
-function updateTireToPilot(barcode: string, pilot?: string, team?: string, notes?: string): boolean {
+async function updateTireToPilot(barcode: string, pilot?: string, team?: string, notes?: string): Promise<boolean> {
   const currentEntry = getStockEntries(true).find(e => e.barcode === barcode);
   
   if (!currentEntry) {
@@ -81,7 +109,35 @@ function updateTireToPilot(barcode: string, pilot?: string, team?: string, notes
   if (team) updates.team = team;
   if (notes) updates.notes = notes;
 
-  return updateStockEntry(barcode, updates);
+  // Atualiza no localStorage
+  const localSuccess = updateStockEntry(barcode, updates);
+  
+  // Atualiza no Supabase
+  try {
+    const { createClient } = await import('../utils/supabase/client');
+    const supabase = createClient();
+    
+    const { error } = await supabase
+      .from('stock_entries')
+      .update({
+        status: 'Piloto',
+        pilot: pilot || null,
+        team: team || null,
+        notes: notes || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('barcode', barcode);
+    
+    if (error) {
+      console.error('Erro ao atualizar status do pneu no Supabase:', error);
+    } else {
+      console.log('✅ Status do pneu atualizado no Supabase:', barcode);
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar pneu no Supabase:', error);
+  }
+  
+  return localSuccess;
 }
 
 export function TireConsumption() {
@@ -142,8 +198,42 @@ export function TireConsumption() {
     // setStatusList(status);
   };
 
-  const loadConsumptionRecords = () => {
-    setConsumptionRecords(getConsumptionRecords());
+  const loadConsumptionRecords = async () => {
+    // Tenta carregar do Supabase primeiro
+    try {
+      const { createClient } = await import('../utils/supabase/client');
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('tire_consumption')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao carregar registros do Supabase:', error);
+        // Fallback para localStorage
+        setConsumptionRecords(getConsumptionRecords());
+      } else {
+        // Mapeia para o formato do componente
+        const records: ConsumptionRecord[] = (data || []).map((record: any) => ({
+          id: record.id,
+          barcode: record.barcode,
+          modelName: record.model_name,
+          modelType: record.model_type,
+          containerName: record.container_name,
+          pilot: record.pilot,
+          team: record.team,
+          timestamp: record.created_at,
+          registeredBy: record.registered_by_name || 'Sistema',
+          notes: record.notes,
+        }));
+        setConsumptionRecords(records);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar registros:', error);
+      // Fallback para localStorage
+      setConsumptionRecords(getConsumptionRecords());
+    }
   };
 
   const handleScanComplete = (code: string) => {
@@ -205,10 +295,10 @@ export function TireConsumption() {
     }
   };
 
-  const handleConfirmConsumption = () => {
+  const handleConfirmConsumption = async () => {
     if (!selectedTire) return;
 
-    const success = updateTireToPilot(selectedTire.barcode, pilot, team, notes);
+    const success = await updateTireToPilot(selectedTire.barcode, pilot, team, notes);
 
     if (success) {
       const user = JSON.parse(localStorage.getItem('porsche-cup-user') || '{}');
@@ -226,7 +316,7 @@ export function TireConsumption() {
         notes: notes || undefined,
       };
 
-      saveConsumptionRecord(consumptionRecord);
+      await saveConsumptionRecord(consumptionRecord);
       loadConsumptionRecords();
 
       toast.success('Pneu transferido para piloto com sucesso!', {
@@ -269,7 +359,7 @@ export function TireConsumption() {
     }
   };
 
-  const handleBulkConsumption = () => {
+  const handleBulkConsumption = async () => {
     if (selectedTires.length === 0) {
       toast.error('Nenhum pneu válido encontrado');
       return;
@@ -279,8 +369,8 @@ export function TireConsumption() {
     let errorCount = 0;
     const user = JSON.parse(localStorage.getItem('porsche-cup-user') || '{}');
 
-    selectedTires.forEach((tire) => {
-      const success = updateTireToPilot(tire.barcode, bulkPilot, bulkTeam, bulkNotes);
+    for (const tire of selectedTires) {
+      const success = await updateTireToPilot(tire.barcode, bulkPilot, bulkTeam, bulkNotes);
 
       if (success) {
         const consumptionRecord: ConsumptionRecord = {
@@ -295,12 +385,12 @@ export function TireConsumption() {
           registeredBy: user.name || user.username || 'Sistema',
           notes: bulkNotes || undefined,
         };
-        saveConsumptionRecord(consumptionRecord);
+        await saveConsumptionRecord(consumptionRecord);
         successCount++;
       } else {
         errorCount++;
       }
-    });
+    }
 
     loadConsumptionRecords();
 
