@@ -427,11 +427,6 @@ export function TireMovement() {
         containerName: targetCont.name,
       };
       
-      // Se o pneu está com status "Novo", muda para "Ativo" ao ser movimentado
-      if (tire.status === 'Novo') {
-        stockUpdates.status = 'Ativo';
-      }
-      
       batchUpdates.push({
         barcode: tire.barcode,
         updates: stockUpdates,
@@ -487,7 +482,6 @@ export function TireMovement() {
           .update({
             container_id: update.updates.containerId,
             container_name: update.updates.containerName,
-            status: update.updates.status || undefined,
             updated_at: new Date().toISOString()
           })
           .eq('barcode', update.barcode);
