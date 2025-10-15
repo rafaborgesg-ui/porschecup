@@ -99,9 +99,11 @@ CREATE POLICY "tire_status_insert_policy" ON public.tire_status
         is_default = TRUE OR public.is_admin()
     );
 
--- Apenas admins podem atualizar status
+-- Admin pode atualizar tudo, usuários ativos podem atualizar apenas status padrão
 CREATE POLICY "tire_status_update_policy" ON public.tire_status
-    FOR UPDATE USING (public.is_admin());
+    FOR UPDATE 
+    USING (public.is_admin() OR (public.is_active_user() AND is_default = TRUE))
+    WITH CHECK (public.is_admin() OR (public.is_active_user() AND is_default = TRUE));
 
 -- Apenas admins podem deletar status não-padrão
 CREATE POLICY "tire_status_delete_policy" ON public.tire_status
