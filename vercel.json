@@ -6,6 +6,10 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/functions/v1/:match*",
+      "destination": "/api/functions/v1/:match*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

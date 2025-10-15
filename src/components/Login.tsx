@@ -58,22 +58,42 @@ export function Login({ onLogin, onSignUp }: LoginProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     // Marca todos os campos como touched
     setTouched({ email: true, password: true });
-    
-    if (!email.trim() || !password.trim()) {
+
+    // Realiza validação imediatamente
+    let validEmail = false;
+    let validPassword = false;
+    if (email.length === 0) {
+      setEmailValidation({ isValid: false, message: 'Email é obrigatório' });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailValidation({ isValid: false, message: 'Email inválido' });
+    } else {
+      setEmailValidation({ isValid: true, message: 'Email válido' });
+      validEmail = true;
+    }
+    if (password.length === 0) {
+      setPasswordValidation({ isValid: false, message: 'Senha é obrigatória' });
+    } else if (password.length < 6) {
+      setPasswordValidation({ isValid: false, message: 'Mínimo 6 caracteres' });
+    } else {
+      setPasswordValidation({ isValid: true, message: 'Senha válida' });
+      validPassword = true;
+    }
+
+    if (!email.trim() || !password.trim() || !validEmail || !validPassword) {
       toast.error('Campos obrigatórios', {
-        description: 'Por favor, preencha email e senha.',
+        description: 'Por favor, preencha email e senha válidos.',
       });
+      setIsLoading(false);
       return;
     }
 
+    if (isLoading) return; // Evita duplo submit
     setIsLoading(true);
 
     try {
       // 🔓 CREDENCIAIS DE DESENVOLVIMENTO - Acesso rápido localhost
-      // Email: rafael.borges@porschegt3cup.com.br | Senha: Porschegt3cupHere
       if (email === 'rafael.borges@porschegt3cup.com.br' && password === 'Porschegt3cupHere') {
         const devUser = {
           id: 'dev-admin-local',
@@ -81,24 +101,12 @@ export function Login({ onLogin, onSignUp }: LoginProps) {
           name: 'Rafael Borges (DEV)',
           role: 'admin',
         };
-
-        // Salva apenas os dados do usuário (não 'authenticated' que conflita com Supabase)
         localStorage.setItem('porsche-cup-user', JSON.stringify(devUser));
-
         toast.success('🚀 Login DEV realizado!', {
           description: 'Bem-vindo, Rafael Borges (modo desenvolvimento)',
         });
-
-        onLogin('admin');
-        return;
-      }
-
-      // Verifica validação para credenciais reais
-      if (!emailValidation.isValid || !passwordValidation.isValid) {
-        toast.error('Dados inválidos', {
-          description: 'Por favor, corrija os erros antes de continuar.',
-        });
         setIsLoading(false);
+        onLogin('admin');
         return;
       }
 
@@ -130,20 +138,16 @@ export function Login({ onLogin, onSignUp }: LoginProps) {
       const user = data.user;
       const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário';
       const role = user.user_metadata?.role || 'operator';
-
-      // Salva informações do usuário no localStorage (Supabase Auth já gerencia a sessão)
       localStorage.setItem('porsche-cup-user', JSON.stringify({
         id: user.id,
         email: user.email,
         name,
         role,
       }));
-
       toast.success('Login realizado com sucesso!', {
         description: `Bem-vindo, ${name}`,
       });
-
-      // Chama callback de login
+      setIsLoading(false);
       onLogin(role);
     } catch (error: any) {
       console.error('Login exception:', error);

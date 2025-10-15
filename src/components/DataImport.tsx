@@ -7,6 +7,8 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { toast } from 'sonner';
 import { getTireModels, checkBarcodeExists, getStockEntries, setStockEntries, type StockEntry } from '../utils/storage';
+import { createClient } from '../utils/supabase/client';
+import { syncFromSupabaseToLocalStorage } from '../utils/supabaseDirectSync';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -282,27 +284,49 @@ export function DataImport() {
   };
 
   const confirmResetDatabase = () => {
-    try {
-      const currentCount = getStockEntries(true).length; // incluindo descartados
-      
-      // Limpa todos os pneus
-      setStockEntries([]);
-      
-      // Limpa também o histórico de movimentações
-      localStorage.removeItem('porsche-cup-tire-movements');
-      
+    (async () => {
       setShowResetDialog(false);
-      
-      toast.success('Base de dados resetada!', {
-        description: `${currentCount} pneus foram removidos. Modelos e contêineres foram preservados.`,
-        duration: 5000,
-      });
-    } catch (error) {
-      console.error('Erro ao resetar base de dados:', error);
-      toast.error('Erro ao resetar base de dados', {
-        description: 'Por favor, tente novamente.',
-      });
-    }
+      try {
+        const edgeUrl = import.meta.env.VITE_SUPABASE_EDGE_URL;
+        if (!edgeUrl) {
+          toast.error('URL da Edge Function não configurada');
+          return;
+        }
+        const supabase = createClient();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.access_token) {
+          toast.error('Não foi possível obter o token de autenticação');
+          return;
+        }
+        const res = await fetch(`${edgeUrl}/reset-database`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const result = await res.json();
+        if (res.ok && result.ok) {
+          toast.success('Base de dados resetada!', {
+            description: `Tabelas limpas: ${Object.entries(result.deleted).map(([table, count]) => `${table}: ${count}`).join(', ')}`,
+            duration: 5000,
+          });
+          // Força atualização do cache local após reset remoto
+          await syncFromSupabaseToLocalStorage();
+          setStockEntries([]);
+          localStorage.removeItem('porsche-cup-tire-movements');
+        } else {
+          toast.error('Erro ao resetar base de dados', {
+            description: result.error || 'Falha desconhecida.',
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao resetar base de dados:', error);
+        toast.error('Erro ao resetar base de dados', {
+          description: error instanceof Error ? error.message : 'Por favor, tente novamente.',
+        });
+      }
+    })();
   };
 
   const handleExcelPaste = () => {

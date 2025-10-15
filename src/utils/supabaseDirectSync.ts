@@ -45,11 +45,6 @@ async function requireAuthenticated(): Promise<boolean> {
   return !!data?.user;
 }
 
-// Util helper para validar UUID v4 simples
-function isUUID(value: string | undefined | null): boolean {
-  if (!value) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
 
 // Helpers para mapear chaves naturais -> IDs do banco
 async function getModelIdByNameOrCode(): Promise<Record<string, string>> {
@@ -302,7 +297,12 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
 /**
  * Sincroniza movimentações de pneus do localStorage para o Supabase
  */
+// Movimentações agora são gravadas diretamente no Supabase pela UI.
+// Para evitar duplicidade, desativamos a sincronização local -> Supabase desta tabela.
 export async function syncTireMovementsToSupabase(): Promise<boolean> {
+  addSyncLog({ table: 'tire_movements', operation: 'sync', count: 0, message: 'Disabled: movements are written directly to Supabase by UI' });
+  return true;
+  /*
   try {
     // Requires authenticated user per RLS
     const authed = await requireAuthenticated();
@@ -352,6 +352,7 @@ export async function syncTireMovementsToSupabase(): Promise<boolean> {
     console.error('Error syncing tire movements:', error);
     return false;
   }
+  */
 }
 
 /**
@@ -680,14 +681,14 @@ export async function syncAllDataToSupabase(): Promise<{ success: boolean; resul
     tireModelsResult,
     containersResult,
     stockEntriesResult,
-    tireMovementsResult,
+    // tireMovementsResult, // disabled to avoid duplicates
     tireConsumptionResult,
     tireStatusResult
   ] = await Promise.all([
     syncTireModelsToSupabase(),
     syncContainersToSupabase(),
     syncStockEntriesToSupabase(),
-    syncTireMovementsToSupabase(),
+    // syncTireMovementsToSupabase(),
     syncTireConsumptionToSupabase(),
     syncTireStatusToSupabase()
   ]);
@@ -695,7 +696,7 @@ export async function syncAllDataToSupabase(): Promise<{ success: boolean; resul
   results.tire_models = tireModelsResult;
   results.containers = containersResult;
   results.stock_entries = stockEntriesResult;
-  results.tire_movements = tireMovementsResult;
+  results.tire_movements = true; // treated as success; handled directly by UI
   results.tire_consumption = tireConsumptionResult;
   results.tire_status = tireStatusResult;
 

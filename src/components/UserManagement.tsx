@@ -32,108 +32,63 @@ interface User {
 // FUNÇÕES DE API - Integração Supabase
 // ============================================
 
-// Função para buscar usuários do Authentication + user_profiles (fonte unificada)
-async function fetchUsersFromSupabase(): Promise<User[]> {
-  try {
-    const supabase = createClient();
-    
-    // Verificar se há usuário autenticado
-    const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !currentUser) {
-      console.log('No authenticated user, returning empty list');
-      return [];
-    }
-    
-    console.log('Current user:', currentUser);
-    
-    // Buscar todos os usuários do Authentication (usando admin API se disponível)
-    // Como não temos acesso direto ao Admin API no frontend, vamos usar a tabela user_profiles
-    // mas sincronizar com o Authentication como fonte principal
-    
-    // Buscar perfis de usuários existentes
-    const { data: userProfiles, error: profilesError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
-      // Fallback: mostrar apenas o usuário atual
-      return [{
-        id: currentUser.id,
-        email: currentUser.email || '',
-        name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
-        username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
-        role: currentUser.user_metadata?.role || 'operator',
-        active: true,
-        createdAt: currentUser.created_at || new Date().toISOString()
-      }];
-    }
-    
-    // Criar um mapa dos perfis existentes
-    const profilesMap = new Map(userProfiles.map((p: any) => [p.id, p]));
-    
-    // Verificar se o usuário atual tem perfil, se não, criar
-    if (!profilesMap.has(currentUser.id)) {
-      console.log('Current user not found in user_profiles, creating profile...');
-      
-      const isFirstUser = userProfiles.length === 0;
-      const role = isFirstUser ? 'admin' : (currentUser.user_metadata?.role || 'operator');
-      
-      const { error: insertError } = await supabase
-        .from('user_profiles')
-        .insert([{
-          id: currentUser.id,
-          email: currentUser.email || '',
-          name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
-          role: role,
-          is_active: true
-        }]);
-      
-      if (!insertError) {
-        console.log(`✅ Created ${role} profile for current user`);
-        // Adicionar ao mapa local
-        profilesMap.set(currentUser.id, {
-          id: currentUser.id,
-          email: currentUser.email || '',
-          name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0] || 'Usuário',
-          role: role,
-          is_active: true,
-          created_at: new Date().toISOString()
-        });
-      }
-    }
-    
-    // Converter perfis para formato da interface, priorizando dados do Authentication
-    const users: User[] = Array.from(profilesMap.values()).map((profile: any) => ({
-      id: profile.id,
-      email: profile.email,
-      name: profile.name,
-      username: profile.email.split('@')[0],
-      role: profile.role as 'admin' | 'operator',
-      active: profile.is_active,
-      createdAt: profile.created_at
-    }));
-    
-    console.log('Loaded users from unified Authentication + user_profiles:', users);
-    return users;
-  } catch (error) {
-    console.error('Error in fetchUsersFromSupabase:', error);
-    throw error;
-  }
-}
-
+// Função para buscar todos os usuários via Edge Function
 async function fetchUsers(): Promise<User[]> {
-  try {
-    console.log('🔍 Fetching users directly from Supabase...');
-    
-    // Skip the problematic Edge Functions and use direct Supabase fallback
-    return await fetchUsersFromSupabase();
-  } catch (error) {
-    console.error('❌ Error fetching users:', error);
-    throw error;
+  const supabase = createClient();
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError || !session) {
+    throw new Error('Token não encontrado. Faça login novamente.');
   }
+  const token = session.access_token;
+  // Endpoint Edge Function Supabase
+  const edgeUrlBase = (import.meta.env.VITE_SUPABASE_EDGE_URL || 'https://nflgqugaabtxzifyhjor.supabase.co/functions/v1/dynamic-service').replace(/\/$/, '');
+  let response: Response | null = null;
+  try {
+    response = await fetch(edgeUrlBase, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    });
+  } catch (e) {
+    response = null;
+  }
+
+  if (!response || !response.ok) {
+    // Fallback: tentar via API interna Hono (/users)
+    try {
+      const { fetchUsers: fetchUsersFromAPI } = await import('../utils/api');
+      const raw = await fetchUsersFromAPI();
+      return (raw || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        name: u.user_metadata?.name || u.name || u.email?.split('@')[0] || 'Usuário',
+        username: u.user_metadata?.username || u.username || u.email?.split('@')[0] || 'user',
+        role: u.user_metadata?.role || u.role || 'operator',
+        active: !u.banned && (u.active ?? true),
+        createdAt: u.created_at || new Date().toISOString()
+      }));
+    } catch (fallbackErr) {
+      const status = response ? response.status : 'network';
+      const txt = response ? (await response.text().catch(() => '')) : (fallbackErr instanceof Error ? fallbackErr.message : '');
+      if (status === 401) throw new Error('401 Não autorizado');
+      if (status === 403) throw new Error('403 Acesso negado');
+      throw new Error(`Erro ao buscar usuários [${status}]: ${txt}`);
+    }
+  }
+
+  const result = await response.json();
+  // Adapta o formato para o tipo User
+  return (result.users || result)?.map((u: any) => ({
+    id: u.id,
+    email: u.email,
+    name: u.user_metadata?.name || u.email?.split('@')[0] || 'Usuário',
+    username: u.user_metadata?.username || u.email?.split('@')[0] || 'user',
+    role: u.user_metadata?.role || 'operator',
+    active: !u.banned,
+    createdAt: u.created_at || new Date().toISOString()
+  })) ?? [];
 }
 
 async function createUser(userData: {
@@ -145,10 +100,8 @@ async function createUser(userData: {
 }): Promise<User> {
   try {
     console.log('🔨 Creating user in Authentication (fonte principal)...');
-    
     const supabase = createClient();
-    
-    // 1. Criar usuário no Authentication (fonte principal)
+    // Criar usuário no Authentication
     const { data, error } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
@@ -160,41 +113,16 @@ async function createUser(userData: {
         }
       }
     });
-    
     console.log('📊 Authentication signUp response:', { data, error });
-    
     if (error) {
       console.error('❌ Authentication signUp error:', error);
       throw new Error(error.message || 'Erro ao criar usuário no Authentication');
     }
-    
     if (!data.user) {
       throw new Error('Usuário não foi criado no Authentication');
     }
-    
     console.log('✅ User created in Authentication:', data.user.email);
-    
-    // 2. Sincronizar com user_profiles (dados complementares)
-    // O trigger handle_new_user() deve fazer isso automaticamente,
-    // mas vamos garantir manualmente caso não exista o trigger
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .insert([{
-        id: data.user.id,
-        email: data.user.email || userData.email,
-        name: userData.name,
-        role: userData.role,
-        is_active: true
-      }]);
-    
-    if (profileError) {
-      console.warn('⚠️ Error syncing with user_profiles (pode ser normal se trigger existir):', profileError);
-      // Não falhar aqui - o usuário foi criado no Authentication
-    } else {
-      console.log('✅ User profile synced to user_profiles table');
-    }
-    
-    // 3. Retornar dados do usuário (priorizando Authentication)
+    // Retornar dados do usuário
     const newUser: User = {
       id: data.user.id,
       email: data.user.email || userData.email,
@@ -204,8 +132,6 @@ async function createUser(userData: {
       active: true,
       createdAt: data.user.created_at || new Date().toISOString()
     };
-    
-    console.log('✅ User created successfully in unified system');
     return newUser;
   } catch (error) {
     console.error('Error in createUser:', error);
@@ -215,52 +141,45 @@ async function createUser(userData: {
 
 async function updateUser(userId: string, updates: Partial<User>): Promise<void> {
   try {
-    console.log('🔄 Updating user in unified system (Authentication + user_profiles)...');
+    console.log('🔄 Updating user via Edge Function (admin)...');
     console.log('User update requested:', { userId, updates });
-    
+
     const supabase = createClient();
-    
-    // 1. Atualizar dados complementares na tabela user_profiles
-    const updateData: any = {};
-    if (updates.name) updateData.name = updates.name;
-    if (updates.email) updateData.email = updates.email;
-    if (updates.role) updateData.role = updates.role;
-    if (updates.active !== undefined) updateData.is_active = updates.active;
-    
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .update(updateData)
-      .eq('id', userId);
-    
-    if (profileError) {
-      console.error('❌ Error updating user_profiles:', profileError);
-      throw new Error(profileError.message || 'Erro ao atualizar perfil do usuário');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Sessão expirada. Faça login novamente.');
     }
-    
-    console.log('✅ User profile updated in user_profiles');
-    
-    // 2. Se é o usuário atual e tem mudanças de metadata, atualizar no Authentication
+
+    const edgeUrl = (import.meta.env.VITE_SUPABASE_EDGE_URL || 'https://nflgqugaabtxzifyhjor.supabase.co/functions/v1/dynamic-service').replace(/\/$/, '');
+    const resp = await fetch(`${edgeUrl}/update-user`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: userId,
+        name: updates.name,
+        role: updates.role,
+        active: updates.active
+      })
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 401) throw new Error('401 Não autorizado. Faça login novamente.');
+      if (resp.status === 403) throw new Error('403 Acesso negado. Apenas administradores podem atualizar usuários.');
+      const txt = await resp.text().catch(() => '');
+      throw new Error(`Falha ao atualizar usuário (${resp.status}): ${txt}`);
+    }
+
+    // Se o usuário editado é o atual e metadata mudou, opcionalmente forçar refresh local
     const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
     if (currentUser && currentUser.id === userId && (updates.name || updates.role)) {
-      console.log('🔄 Updating current user metadata in Authentication...');
-      
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          name: updates.name || currentUser.user_metadata?.name,
-          role: updates.role || currentUser.user_metadata?.role
-        }
-      });
-      
-      if (authError) {
-        console.warn('⚠️ Could not update Authentication metadata:', authError);
-        // Não falhar aqui - o perfil foi atualizado
-      } else {
-        console.log('✅ Authentication metadata updated');
-      }
+      // Refetch user to reflect updates in UI flows that rely on user_metadata
+      await supabase.auth.getUser();
     }
-    
-    console.log('✅ User updated successfully in unified system');
+
+    console.log('✅ User updated successfully via Edge Function');
   } catch (error) {
     console.error('Error in updateUser:', error);
     throw error;
@@ -269,26 +188,11 @@ async function updateUser(userId: string, updates: Partial<User>): Promise<void>
 
 async function deleteUser(userId: string): Promise<void> {
   try {
-    console.log('🗑️ Deleting user from unified system...');
+    console.log('🗑️ Deleting user from Authentication...');
     console.log('User deletion requested:', { userId });
-    
-    const supabase = createClient();
-    
     // Nota: A exclusão real do usuário do Authentication requer Admin API
-    // Por enquanto, vamos desativar o usuário na tabela user_profiles
-    // Em um ambiente de produção, isso seria feito via servidor com Admin API
-    
-    const { error } = await supabase
-      .from('user_profiles')
-      .update({ is_active: false })
-      .eq('id', userId);
-    
-    if (error) {
-      console.error('❌ Error deactivating user:', error);
-      throw new Error(error.message || 'Erro ao desativar usuário');
-    }
-    
-    console.log('✅ User deactivated successfully (not deleted from Authentication)');
+    // Aqui apenas loga/desativa no frontend; para deletar de verdade, use a Edge Function/Admin API
+    // Implementação futura: chamada para Edge Function que desativa ou exclui usuário
     console.log('ℹ️  Note: Para deletar completamente do Authentication, usar Admin API no servidor');
   } catch (error) {
     console.error('Error in deleteUser:', error);

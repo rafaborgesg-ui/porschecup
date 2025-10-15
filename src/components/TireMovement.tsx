@@ -37,37 +37,62 @@ interface TireMovement {
   reason?: string;
 }
 
-const MOVEMENTS_KEY = 'porsche-cup-tire-movements';
 
-function getTireMovements(): TireMovement[] {
-  try {
-    const stored = localStorage.getItem(MOVEMENTS_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    console.error('Erro ao carregar movimentações:', error);
-    return [];
+
+async function saveTireMovement(movement: TireMovement): Promise<void> {
+  const { createClient, getCurrentUser } = await import('../utils/supabase/client');
+  const supabase = createClient();
+  let user = await getCurrentUser();
+  const movementForDB = {
+    barcode: movement.barcode,
+    model_name: movement.modelName,
+    model_type: movement.modelType,
+    from_container_id: movement.fromContainerId || null,
+    from_container_name: movement.fromContainerName || null,
+    to_container_id: movement.toContainerId,
+    to_container_name: movement.toContainerName,
+    moved_by: user?.id || null,
+    moved_by_name: user?.name || movement.movedBy || null,
+    reason: movement.reason || null,
+    created_at: new Date(movement.timestamp).toISOString()
+  };
+  const { error } = await supabase.from('tire_movements').insert([movementForDB]);
+  if (error) {
+    console.error('Erro ao salvar movimentação no Supabase:', error);
+  } else {
+    console.log('✅ Movimentação salva no Supabase:', movementForDB.barcode);
+    window.dispatchEvent(new Event('tire-movements-updated'));
   }
 }
 
-function saveTireMovement(movement: TireMovement): void {
-  try {
-    const movements = getTireMovements();
-    movements.push(movement);
-    localStorage.setItem(MOVEMENTS_KEY, JSON.stringify(movements));
-  } catch (error) {
-    console.error('Erro ao salvar movimentação:', error);
-  }
-}
-
-function updateTireContainer(barcode: string, newContainerId: string, newContainerName: string): boolean {
-  // Atualiza apenas o container do pneu
-  // O status só muda para "Ativo" quando registrado no módulo "Consumo"
+function updateTireContainer(barcode: string, newContainerId: string, newContainerName: string): void {
+  // Atualiza o container do pneu tanto no localStorage quanto no Supabase
   const updates: any = {
     containerId: newContainerId,
     containerName: newContainerName,
   };
   
-  return updateStockEntry(barcode, updates);
+  // Atualiza localStorage
+  updateStockEntry(barcode, updates);
+  
+  // Atualiza Supabase
+  import('../utils/supabase/client').then(async ({ createClient }) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('stock_entries')
+      .update({
+        container_id: newContainerId,
+        container_name: newContainerName,
+        updated_at: new Date().toISOString()
+      })
+      .eq('barcode', barcode);
+    
+    if (error) {
+      console.error('Erro ao atualizar container no Supabase:', error);
+    } else {
+      console.log('✅ Container atualizado no Supabase para pneu:', barcode);
+    }
+  });
 }
 
 export function TireMovement() {
@@ -79,6 +104,7 @@ export function TireMovement() {
   const [containers, setContainers] = useState<any[]>([]);
   const [movements, setMovements] = useState<TireMovement[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isProcessingMove, setIsProcessingMove] = useState(false);
   const [searchResults, setSearchResults] = useState<StockEntry[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -134,10 +160,35 @@ export function TireMovement() {
   };
 
   const loadMovements = () => {
-    const movementsList = getTireMovements();
-    setMovements(movementsList.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ));
+    // Carrega movimentações diretamente do Supabase
+    import('../utils/supabase/client').then(async ({ createClient }) => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('tire_movements')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao carregar movimentações:', error);
+        setMovements([]);
+      } else {
+        // Mapeia para o formato esperado pelo componente
+        const movementsList = (data || []).map((mov: any) => ({
+          id: mov.id,
+          barcode: mov.barcode,
+          modelName: mov.model_name,
+          modelType: mov.model_type,
+          fromContainerId: mov.from_container_id,
+          fromContainerName: mov.from_container_name,
+          toContainerId: mov.to_container_id,
+          toContainerName: mov.to_container_name,
+          movedBy: mov.moved_by_name,
+          reason: mov.reason,
+          timestamp: mov.created_at
+        }));
+        setMovements(movementsList);
+      }
+    });
   };
 
   const loadTireModels = () => {
@@ -214,14 +265,20 @@ export function TireMovement() {
     setShowConfirmDialog(true);
   };
 
-  const confirmMove = () => {
-    if (!selectedTire || !targetContainer) return;
-
+  const confirmMove = async () => {
+    if (isProcessingMove) return;
+    setIsProcessingMove(true);
+    if (!selectedTire || !targetContainer) {
+      setIsProcessingMove(false);
+      return;
+    }
     const targetCont = containers.find(c => c.id === targetContainer);
-    if (!targetCont) return;
-
+    if (!targetCont) {
+      setIsProcessingMove(false);
+      return;
+    }
     const movement: TireMovement = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       barcode: selectedTire.barcode,
       modelName: selectedTire.modelName,
       modelType: (selectedTire.modelType || 'Slick') as 'Slick' | 'Wet',
@@ -230,32 +287,25 @@ export function TireMovement() {
       toContainerId: targetContainer,
       toContainerName: targetCont.name,
       timestamp: new Date().toISOString(),
-      movedBy: JSON.parse(localStorage.getItem('porsche-cup-user') || '{}').username || 'Usuário',
+      movedBy: '', // O nome do usuário será preenchido pelo Supabase
       reason: reason.trim() || undefined,
     };
-
-    saveTireMovement(movement);
-    updateTireContainer(selectedTire.barcode, targetContainer, targetCont.name);
-
+    await saveTireMovement(movement);
+    await updateTireContainer(selectedTire.barcode, targetContainer, targetCont.name);
     toast.success('Pneu movimentado!', {
       description: `${selectedTire.modelName} transferido para ${targetCont.name}`,
     });
-
-    // Dispara evento para onboarding checklist
     window.dispatchEvent(new Event('tire-moved'));
-
-    // Limpa o formulário
     setSelectedTire(null);
     setBarcode('');
     setTargetContainer('');
     setReason('');
     setShowConfirmDialog(false);
     loadMovements();
-    
-    // Retorna foco para o input
     setTimeout(() => {
       barcodeInputRef.current?.focus();
     }, 100);
+    setIsProcessingMove(false);
   };
 
   const getAvailableContainers = () => {
@@ -339,10 +389,11 @@ export function TireMovement() {
   };
 
   const confirmBulkMove = async () => {
-    if (selectedTires.length === 0 || !bulkTargetContainer) return;
+  if (isBulkProcessing) return;
+  if (selectedTires.length === 0 || !bulkTargetContainer) return;
 
-    setIsBulkProcessing(true);
-    setBulkProgress(0);
+  setIsBulkProcessing(true);
+  setBulkProgress(0);
 
     const targetCont = containers.find(c => c.id === bulkTargetContainer);
     if (!targetCont) return;
@@ -357,7 +408,7 @@ export function TireMovement() {
       
       // Prepara movimento
       movements.push({
-        id: `${Date.now()}-${tire.barcode}-${i}`,
+        id: crypto.randomUUID(),
         barcode: tire.barcode,
         modelName: tire.modelName,
         modelType: (tire.modelType || 'Slick') as 'Slick' | 'Wet',
@@ -366,7 +417,7 @@ export function TireMovement() {
         toContainerId: bulkTargetContainer,
         toContainerName: targetCont.name,
         timestamp: new Date().toISOString(),
-        movedBy: JSON.parse(localStorage.getItem('porsche-cup-user') || '{}').username || 'Usuário',
+        movedBy: '', // O nome do usuário será preenchido pelo Supabase
         reason: bulkReason.trim() || undefined,
       });
 
@@ -398,14 +449,54 @@ export function TireMovement() {
 
     // Salva tudo de uma vez (apenas 1 evento disparado)
     try {
-      // Salva movimentos
-      const existingMovements = getTireMovements();
-      localStorage.setItem('porsche-cup-tire-movements', JSON.stringify([...existingMovements, ...movements]));
-      // Dispara evento para sincronização com Supabase
-      window.dispatchEvent(new Event('tire-movements-updated'));
+      // Salva movimentos diretamente no Supabase
+      const { createClient, getCurrentUser } = await import('../utils/supabase/client');
+      const supabase = createClient();
+      const user = await getCurrentUser();
       
-      // Atualiza estoque em lote
+      // Mapeia movimentos para o formato do banco
+      const movementsForDB = movements.map((movement: any) => ({
+        barcode: movement.barcode,
+        model_name: movement.modelName,
+        model_type: movement.modelType,
+        from_container_id: movement.fromContainerId || null,
+        from_container_name: movement.fromContainerName || null,
+        to_container_id: movement.toContainerId,
+        to_container_name: movement.toContainerName,
+        moved_by: user?.id || null,
+        moved_by_name: user?.name || movement.movedBy || null,
+        reason: movement.reason || null,
+        created_at: new Date(movement.timestamp).toISOString()
+      }));
+      
+      const { error } = await supabase.from('tire_movements').insert(movementsForDB);
+      if (error) {
+        console.error('Erro ao salvar movimentações no Supabase:', error);
+      } else {
+        console.log(`✅ ${movements.length} movimentações salvas no Supabase`);
+        window.dispatchEvent(new Event('tire-movements-updated'));
+      }
+      
+      // Atualiza estoque em lote no localStorage
       updateStockEntriesBatch(batchUpdates);
+      
+      // Atualiza estoque em lote no Supabase
+      for (const update of batchUpdates) {
+        const { error: updateError } = await supabase
+          .from('stock_entries')
+          .update({
+            container_id: update.updates.containerId,
+            container_name: update.updates.containerName,
+            status: update.updates.status || undefined,
+            updated_at: new Date().toISOString()
+          })
+          .eq('barcode', update.barcode);
+        
+        if (updateError) {
+          console.error(`Erro ao atualizar pneu ${update.barcode} no Supabase:`, updateError);
+        }
+      }
+      console.log(`✅ ${batchUpdates.length} pneus atualizados no Supabase`);
       
       // Pequena pausa para mostrar 100% completo
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -433,8 +524,30 @@ export function TireMovement() {
       setIsBulkProcessing(false);
       setBulkProgress(0);
       
-      // Recarrega movimentos
-      setMovements(getTireMovements());
+      // Recarrega movimentos do Supabase
+      await import('../utils/supabase/client').then(async ({ createClient }) => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('tire_movements')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          const movementsList = (data || []).map((mov: any) => ({
+            id: mov.id,
+            barcode: mov.barcode,
+            modelName: mov.model_name,
+            modelType: mov.model_type,
+            fromContainerId: mov.from_container_id,
+            fromContainerName: mov.from_container_name,
+            toContainerId: mov.to_container_id,
+            toContainerName: mov.to_container_name,
+            movedBy: mov.moved_by_name,
+            reason: mov.reason,
+            timestamp: mov.created_at
+          }));
+          setMovements(movementsList);
+        }
+      });
     } catch (error) {
       console.error('Erro ao processar movimentação em massa:', error);
       toast.error('Erro ao processar movimentação', {
@@ -1136,7 +1249,7 @@ export function TireMovement() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2">
                               <User size={14} className="text-gray-400" />
-                              <span className="text-sm text-gray-900">{movement.movedBy}</span>
+                              <span className="text-sm text-gray-900">{movement.movedBy || '-'}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -1238,6 +1351,7 @@ export function TireMovement() {
             <AlertDialogAction
               onClick={confirmMove}
               className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={isProcessingMove}
             >
               Confirmar Movimentação
             </AlertDialogAction>
@@ -1348,6 +1462,7 @@ export function TireMovement() {
               <AlertDialogAction
                 onClick={confirmBulkMove}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={isBulkProcessing}
               >
                 Confirmar Movimentação
               </AlertDialogAction>
