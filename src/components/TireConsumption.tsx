@@ -53,39 +53,17 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
     const records = getConsumptionRecords();
     records.push(record);
     localStorage.setItem(CONSUMPTION_KEY, JSON.stringify(records));
-    
-    // Salva no Supabase
-    const { createClient, getCurrentUser } = await import('../utils/supabase/client');
-    const supabase = createClient();
-    const user = await getCurrentUser();
-    
-    const recordForDB = {
-      barcode: record.barcode,
-      model_name: record.modelName,
-      model_type: record.modelType,
-      container_name: record.containerName,
-      pilot: record.pilot || null,
-      team: record.team || null,
-      notes: record.notes || null,
-      registered_by_name: user?.name || record.registeredBy || null,
-      created_at: new Date(record.timestamp).toISOString()
-    };
-    
-    const { error } = await supabase.from('tire_consumption').insert([recordForDB]);
-    
-    if (error) {
-      console.error('Erro ao salvar registro de consumo no Supabase:', error);
-    } else {
-      console.log('✅ Registro de consumo salvo no Supabase:', recordForDB.barcode);
-    }
-    
-    // Dispara evento para sincronização
+
+    // Não insere diretamente no Supabase aqui para evitar registros com registered_by = NULL.
+    // A sincronização em background (useSupabaseSync -> supabaseDirectSync) fará o insert
+    // sempre com registered_by = ID do usuário autenticado.
     window.dispatchEvent(new Event('tire-consumption-updated'));
   } catch (error) {
     console.error('Erro ao salvar registro de consumo:', error);
   }
 }
 
+// Atualiza o status do pneu para "Piloto" (localStorage + Supabase)
 async function updateTireToPilot(barcode: string, pilot?: string, team?: string, notes?: string): Promise<boolean> {
   const currentEntry = getStockEntries(true).find(e => e.barcode === barcode);
   
@@ -115,7 +93,7 @@ async function updateTireToPilot(barcode: string, pilot?: string, team?: string,
   try {
     const { createClient } = await import('../utils/supabase/client');
     const supabase = createClient();
-    
+
     const { error } = await supabase
       .from('stock_entries')
       .update({
@@ -126,7 +104,7 @@ async function updateTireToPilot(barcode: string, pilot?: string, team?: string,
         updated_at: new Date().toISOString()
       })
       .eq('barcode', barcode);
-    
+
     if (error) {
       console.error('Erro ao atualizar status do pneu no Supabase:', error);
     } else {
