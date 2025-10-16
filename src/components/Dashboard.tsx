@@ -41,7 +41,8 @@ export function Dashboard() {
 
     // Total de pneus EXCLUINDO os descartados
     const totalPneus = activeEntries.length;
-    const pneusAtivos = activeEntries.filter(e => e.status === 'Ativo' || !e.status).length;
+  // Em vez de 'Ativo', considerar como "Piloto" para pneus em uso
+  const pneusAtivos = activeEntries.filter(e => e.status === 'Piloto').length;
     const pneusNovos = activeEntries.filter(e => e.status === 'Novo').length;
     const pneusDescartados = allEntries.filter(e => e.status === 'Descarte').length;
     // const totalContainers = containers.length;
@@ -54,7 +55,7 @@ export function Dashboard() {
 
     const containersWithAtivos = new Set(
       activeEntries
-        .filter(e => e.status === 'Ativo' || !e.status)
+        .filter(e => e.status === 'Piloto')
         .map(e => e.containerId)
     ).size;
 
@@ -97,7 +98,7 @@ export function Dashboard() {
         type: 'new',
       },
       {
-        title: 'Pneus Ativos',
+        title: 'Piloto',
         value: pneusAtivos,
         change: 8,
         changeLabel: 'em uso',
@@ -277,8 +278,8 @@ export function Dashboard() {
               description = 'Pneus ativos no sistema (excluindo descartados)';
               headerColor = 'bg-gradient-to-r from-blue-500 to-blue-600';
             } else if (selectedCard === 'active') {
-              filteredEntries = activeEntries.filter(e => e.status === 'Ativo' || !e.status);
-              title = 'Pneus Ativos';
+              filteredEntries = activeEntries.filter(e => e.status === 'Piloto');
+              title = 'Piloto';
               description = 'Pneus atualmente em uso';
               headerColor = 'bg-gradient-to-r from-[#00A86B] to-[#008F5A]';
             } else if (selectedCard === 'new') {
@@ -414,7 +415,7 @@ export function Dashboard() {
                                   className={`
                                     ${entry.status === 'Novo' 
                                       ? 'bg-blue-100 text-blue-700 border-blue-200' 
-                                      : entry.status === 'Ativo' 
+                                      : (entry.status === 'Ativo' || entry.status === 'Piloto')
                                       ? 'bg-green-100 text-green-700 border-green-200'
                                       : entry.status === 'Descarte'
                                       ? 'bg-red-100 text-red-700 border-red-200'
