@@ -94,9 +94,12 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
 
 // Atualiza o status do pneu para "Piloto" (localStorage + Supabase)
 async function updateTireToPilot(barcode: string, pilot?: string, team?: string, notes?: string): Promise<boolean> {
+  console.log('🔍 updateTireToPilot chamado com:', { barcode, pilot, team, notes });
+  
   const currentEntry = getStockEntries(true).find(e => e.barcode === barcode);
   
   if (!currentEntry) {
+    console.log('❌ Pneu não encontrado:', barcode);
     return false;
   }
 
@@ -112,33 +115,42 @@ async function updateTireToPilot(barcode: string, pilot?: string, team?: string,
     team: team || null,
     notes: notes || null,
   };
+  
+  console.log('🔍 Objeto updates:', updates);
 
-  // Atualiza no localStorage
-  const localSuccess = updateStockEntry(barcode, updates);
+  // Atualiza no localStorage COM SILENT=true para NÃO disparar evento de sync ainda
+  const localSuccess = updateStockEntry(barcode, updates, true);
   
   // Atualiza no Supabase
   try {
     const { createClient } = await import('../utils/supabase/client');
     const supabase = createClient();
 
-    const { error } = await supabase
+    const updatePayload = {
+      status: 'Piloto',
+      pilot: pilot || null,
+      team: team || null,
+      notes: notes || null,
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('🔍 Atualizando Supabase stock_entries:', { barcode, updatePayload });
+
+    const { data, error } = await supabase
       .from('stock_entries')
-      .update({
-        status: 'Piloto',
-        pilot: pilot || null,
-        team: team || null,
-        notes: notes || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('barcode', barcode);
+      .update(updatePayload)
+      .eq('barcode', barcode)
+      .select();
 
     if (error) {
-      console.error('Erro ao atualizar status do pneu no Supabase:', error);
+      console.error('❌ Erro ao atualizar status do pneu no Supabase:', error);
     } else {
-      console.log('✅ Status do pneu atualizado no Supabase:', barcode);
+      console.log('✅ Status do pneu atualizado no Supabase:', { barcode, data });
+      // Agora que o Supabase foi atualizado, dispara o evento de sync
+      window.dispatchEvent(new CustomEvent('stock-entries-updated'));
     }
   } catch (error) {
-    console.error('Erro ao atualizar pneu no Supabase:', error);
+    console.error('❌ Exceção ao atualizar pneu no Supabase:', error);
   }
   
   return localSuccess;
@@ -373,7 +385,15 @@ export function TireConsumption() {
     let errorCount = 0;
     const user = JSON.parse(localStorage.getItem('porsche-cup-user') || '{}');
 
+    console.log('🔍 DEBUG Bulk Transfer:', {
+      bulkPilot,
+      bulkTeam,
+      bulkNotes,
+      selectedTiresCount: selectedTires.length
+    });
+
     for (const tire of selectedTires) {
+      console.log('🔍 Transferindo pneu:', tire.barcode, 'para piloto:', bulkPilot);
       const success = await updateTireToPilot(tire.barcode, bulkPilot, bulkTeam, bulkNotes);
 
       if (success) {
