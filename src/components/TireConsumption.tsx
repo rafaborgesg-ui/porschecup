@@ -108,12 +108,10 @@ async function updateTireToPilot(barcode: string, pilot?: string, team?: string,
 
   const updates: any = {
     status: 'Piloto',
+    pilot: pilot || null,
+    team: team || null,
+    notes: notes || null,
   };
-
-  // Adiciona informações opcionais
-  if (pilot) updates.pilot = pilot;
-  if (team) updates.team = team;
-  if (notes) updates.notes = notes;
 
   // Atualiza no localStorage
   const localSuccess = updateStockEntry(barcode, updates);
