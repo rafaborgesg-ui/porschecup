@@ -55,6 +55,37 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
     const user = await getCurrentUser();
 
     if (user?.id) {
+      // Proteção contra duplicidade: verifica se já existe um registro recente para este barcode
+      try {
+        const { data: lastRows } = await supabase
+          .from('tire_consumption')
+          .select('id, barcode, pilot, team, notes, registered_by, created_at')
+          .eq('barcode', record.barcode)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (lastRows && lastRows.length > 0) {
+          const last = lastRows[0] as any;
+          const lastTs = new Date(last.created_at).getTime();
+          const currTs = new Date(record.timestamp).getTime();
+          const deltaSec = Math.abs(currTs - lastTs) / 1000;
+          const sameContext = (
+            (last.pilot || null) === (record.pilot || null) &&
+            (last.team || null) === (record.team || null) &&
+            (last.notes || null) === (record.notes || null) &&
+            (last.registered_by || null) === (user.id || null)
+          );
+          // Se houve um insert praticamente simultâneo com mesmo contexto, não duplica
+          if (deltaSec <= 5 && sameContext) {
+            console.warn('⛔ Evitando duplicidade de consumo: registro recente já existe para', record.barcode);
+            window.dispatchEvent(new Event('tire-consumption-updated'));
+            return;
+          }
+        }
+      } catch (checkErr) {
+        console.warn('⚠️ Falha ao checar duplicidade de consumo (prosseguindo com insert):', checkErr);
+      }
+
       const recordForDB = {
         barcode: record.barcode,
         model_name: record.modelName,
@@ -84,8 +115,13 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
   // 2) Fallback: salva no localStorage (para posterior sincronização quando logado)
   try {
     const records = getConsumptionRecords();
-    records.push(record);
-    localStorage.setItem(CONSUMPTION_KEY, JSON.stringify(records));
+    const already = records.find(r => r.barcode === record.barcode && Math.abs(new Date(r.timestamp).getTime() - new Date(record.timestamp).getTime()) <= 5000);
+    if (!already) {
+      records.push(record);
+      localStorage.setItem(CONSUMPTION_KEY, JSON.stringify(records));
+    } else {
+      console.warn('⛔ Evitando duplicidade no localStorage para consumo:', record.barcode);
+    }
   } catch (error) {
     console.error('Erro ao salvar registro de consumo no localStorage:', error);
   }

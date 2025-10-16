@@ -246,7 +246,7 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
       entriesForDB.push(mapped);
     });
 
-    console.log(`📊 Valid entries for DB: ${entriesForDB.length}`);
+  console.log(`📊 Valid entries for DB: ${entriesForDB.length}`);
     console.log(`📊 Failed entries: ${failedEntries.length}`);
     
     if (failedEntries.length > 0) {
@@ -264,6 +264,38 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
     }
 
     console.log(`📊 Sample valid entry:`, entriesForDB[0]);
+
+    // Proteção: não sobrescrever pilot/team/notes com NULL caso o Supabase já tenha valor.
+    // Busca valores atuais no Supabase para barcodes com status 'Piloto' e pilot/team/notes nulos localmente.
+    const missingInfoBarcodes = entriesForDB
+      .filter(e => e.status === 'Piloto' && (!e.pilot || !e.team || !e.notes))
+      .map(e => e.barcode);
+
+    if (missingInfoBarcodes.length > 0) {
+      try {
+        const { data: existingRows, error: fetchError } = await supabase
+          .from('stock_entries')
+          .select('barcode,pilot,team,notes')
+          .in('barcode', missingInfoBarcodes);
+
+        if (!fetchError && existingRows && existingRows.length > 0) {
+          const existingMap: Record<string, any> = Object.fromEntries(
+            existingRows.map((r: any) => [r.barcode, r])
+          );
+          entriesForDB.forEach(e => {
+            const current = existingMap[e.barcode];
+            if (current) {
+              if (!e.pilot && current.pilot) e.pilot = current.pilot;
+              if (!e.team && current.team) e.team = current.team;
+              if (!e.notes && current.notes) e.notes = current.notes;
+            }
+          });
+          console.log(`🛡️ Preservados pilot/team/notes de ${existingRows.length} registros do Supabase para evitar overwrite com NULL.`);
+        }
+      } catch (e) {
+        console.warn('⚠️ Falha ao buscar pilot/team/notes atuais no Supabase. Prosseguindo sem merge protetor.', e);
+      }
+    }
 
     console.log(`🚀 Attempting to upsert ${entriesForDB.length} entries to Supabase...`);
     
@@ -359,54 +391,10 @@ export async function syncTireMovementsToSupabase(): Promise<boolean> {
  * Sincroniza registros de consumo do localStorage para o Supabase
  */
 export async function syncTireConsumptionToSupabase(): Promise<boolean> {
-  try {
-    // Requires authenticated user per RLS
-    const authed = await requireAuthenticated();
-    if (!authed) {
-      addSyncLog({ table: 'tire_consumption', operation: 'error', message: 'Skipped: user not authenticated' });
-      return false;
-    }
-    const consumption = JSON.parse(localStorage.getItem('porsche-cup-tire-consumption') || '[]');
-    const { data: authData } = await supabase.auth.getUser();
-    const authUser = authData?.user;
-    
-    if (consumption.length === 0) {
-      addSyncLog({ table: 'tire_consumption', operation: 'sync', count: 0, message: 'No consumption records to sync' });
-      return true;
-    }
-
-    // Mapeia para o formato esperado pela tabela
-    const consumptionForDB = consumption.map((record: any) => ({
-      barcode: record.barcode,
-      model_name: record.modelName,
-      model_type: record.modelType,
-      // container_name removido: não persistir container na tabela de consumo
-      pilot: record.pilot || null,
-      team: record.team || null,
-      notes: record.notes || null,
-      registered_by: authUser?.id ?? null,
-      registered_by_name: record.registeredBy || authUser?.user_metadata?.name || authUser?.user_metadata?.full_name || authUser?.email || null,
-      created_at: new Date(record.timestamp).toISOString()
-    }));
-
-    const { error } = await supabase
-      .from('tire_consumption')
-      .insert(consumptionForDB);
-
-    if (error) {
-      addSyncLog({ table: 'tire_consumption', operation: 'error', message: error.message });
-      console.error('Error syncing tire consumption:', error);
-      return false;
-    }
-
-    addSyncLog({ table: 'tire_consumption', operation: 'sync', count: consumption.length, message: 'Synced successfully' });
-    console.log(`Synced ${consumption.length} tire consumption records to Supabase`);
-    return true;
-  } catch (error) {
-    addSyncLog({ table: 'tire_consumption', operation: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
-    console.error('Error syncing tire consumption:', error);
-    return false;
-  }
+  // Desabilitado: a UI grava diretamente no Supabase para evitar duplicidade.
+  // Mantemos a função para compatibilidade, mas não faz upload.
+  addSyncLog({ table: 'tire_consumption', operation: 'sync', count: 0, message: 'Disabled: written directly by UI' });
+  return true;
 }
 
 /**
@@ -487,20 +475,44 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
           containerId: entry.container_id || '',
           containerName: entry.container_name || '',
           status: entry.status || 'Novo',
+          // Preserva campos funcionais usados na UI
+          sessionId: entry.session_id || '',
+          pilot: entry.pilot || undefined,
+          team: entry.team || undefined,
+          notes: entry.notes || undefined,
           timestamp: entry.created_at
         }));
         
-  // MERGE: preserva registros locais que não estão no Supabase
+        // MERGE: preserva registros locais que não estão no Supabase e também preserva campos locais não presentes
   const localRaw = localStorage.getItem('porsche-cup-tire-entries');
   const localExisting: any[] = localRaw ? JSON.parse(localRaw) : [];
-  // Cria mapa de barcodes do Supabase
-  const supabaseBarcodes = new Set(localEntries.map((e: { barcode: string }) => e.barcode));
-  // Filtra registros locais que não estão no Supabase
-  const onlyLocal = localExisting.filter(e => !supabaseBarcodes.has(e.barcode));
-  // Junta tudo: Supabase + locais não enviados
-  const mergedEntries = [...localEntries, ...onlyLocal];
-  localStorage.setItem('porsche-cup-tire-entries', JSON.stringify(mergedEntries));
-  console.log(`📦 Synced ${localEntries.length} stock entries from Supabase (merged, total: ${mergedEntries.length})`);
+
+        // Cria mapa de barcodes do Supabase
+  const supabaseMap: Map<string, any> = new Map(localEntries.map((e: any) => [e.barcode, e]));
+
+        // Faz merge entry-a-entry para preservar qualquer campo local não retornado/atualizado pelo Supabase
+        const mergedEntries = localExisting.map((local: any) => {
+          const fromSupabase: any = supabaseMap.get(local.barcode);
+          if (!fromSupabase) return local; // mantém local se não veio do Supabase
+
+          // Merge preferindo dados do Supabase, mas mantendo campos locais se não vierem do Supabase
+          return {
+            ...local,
+            ...fromSupabase,
+            // Se Supabase não enviar esses campos, mantém os locais
+            pilot: fromSupabase.pilot !== undefined ? fromSupabase.pilot : local.pilot,
+            team: fromSupabase.team !== undefined ? fromSupabase.team : local.team,
+            notes: fromSupabase.notes !== undefined ? fromSupabase.notes : local.notes,
+          };
+        });
+
+        // Adiciona entradas que existem no Supabase mas não estavam localmente
+  const localBarcodes = new Set(localExisting.map((e: any) => e.barcode));
+  const onlySupabase = localEntries.filter((e: any) => !localBarcodes.has(e.barcode));
+        const finalMerged = [...mergedEntries, ...onlySupabase];
+
+        localStorage.setItem('porsche-cup-tire-entries', JSON.stringify(finalMerged));
+        console.log(`📦 Synced ${localEntries.length} stock entries from Supabase (merged, total: ${finalMerged.length})`);
       }
     } catch (err) {
       console.error('Error syncing stock entries from Supabase:', err);
@@ -683,14 +695,14 @@ export async function syncAllDataToSupabase(): Promise<{ success: boolean; resul
     containersResult,
     stockEntriesResult,
     // tireMovementsResult, // disabled to avoid duplicates
-    tireConsumptionResult,
+    // tireConsumptionResult, // disabled: consumption is written directly by UI
     tireStatusResult
   ] = await Promise.all([
     syncTireModelsToSupabase(),
     syncContainersToSupabase(),
     syncStockEntriesToSupabase(),
     // syncTireMovementsToSupabase(),
-    syncTireConsumptionToSupabase(),
+    // syncTireConsumptionToSupabase(),
     syncTireStatusToSupabase()
   ]);
 
@@ -698,7 +710,7 @@ export async function syncAllDataToSupabase(): Promise<{ success: boolean; resul
   results.containers = containersResult;
   results.stock_entries = stockEntriesResult;
   results.tire_movements = true; // treated as success; handled directly by UI
-  results.tire_consumption = tireConsumptionResult;
+  results.tire_consumption = true; // treated as success; handled directly by UI
   results.tire_status = tireStatusResult;
 
   const successCount = Object.values(results).filter(Boolean).length;
