@@ -59,7 +59,7 @@ async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
         barcode: record.barcode,
         model_name: record.modelName,
         model_type: record.modelType,
-        container_name: record.containerName,
+  // container_name removido: não vamos mais persistir container na tabela de consumo
         pilot: record.pilot || null,
         team: record.team || null,
         notes: record.notes || null,
@@ -226,7 +226,7 @@ export function TireConsumption() {
           barcode: record.barcode,
           modelName: record.model_name,
           modelType: record.model_type,
-          containerName: record.container_name,
+          containerName: record.container_name, // compat: manter leitura caso exista; tabela será atualizada para remover a coluna
           pilot: record.pilot,
           team: record.team,
           timestamp: record.created_at,

@@ -380,7 +380,7 @@ export async function syncTireConsumptionToSupabase(): Promise<boolean> {
       barcode: record.barcode,
       model_name: record.modelName,
       model_type: record.modelType,
-      container_name: record.containerName || null,
+      // container_name removido: não persistir container na tabela de consumo
       pilot: record.pilot || null,
       team: record.team || null,
       notes: record.notes || null,
@@ -549,7 +549,8 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
           barcode: cons.barcode,
           modelName: cons.model_name,
           modelType: cons.model_type,
-          containerName: cons.container_name,
+          // container_name removido da tabela; manter fallback vazio
+          containerName: cons.container_name || '',
           consumedBy: cons.pilot,
           pilot: cons.pilot,
           team: cons.team,
