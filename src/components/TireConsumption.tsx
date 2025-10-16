@@ -48,19 +48,48 @@ function getConsumptionRecords(): ConsumptionRecord[] {
 }
 
 async function saveConsumptionRecord(record: ConsumptionRecord): Promise<void> {
+  // 1) Tenta inserir diretamente no Supabase COM registered_by (ID do usuário)
   try {
-    // Salva no localStorage
+    const { createClient, getCurrentUser } = await import('../utils/supabase/client');
+    const supabase = createClient();
+    const user = await getCurrentUser();
+
+    if (user?.id) {
+      const recordForDB = {
+        barcode: record.barcode,
+        model_name: record.modelName,
+        model_type: record.modelType,
+        container_name: record.containerName,
+        pilot: record.pilot || null,
+        team: record.team || null,
+        notes: record.notes || null,
+        registered_by: user.id,
+        registered_by_name: user.name || record.registeredBy || null,
+        created_at: new Date(record.timestamp).toISOString()
+      };
+
+      const { error } = await supabase.from('tire_consumption').insert([recordForDB]);
+      if (!error) {
+        // Inserido com sucesso no Supabase com ID -> não salvar no localStorage para evitar duplicidade
+        window.dispatchEvent(new Event('tire-consumption-updated'));
+        return;
+      }
+      console.error('Erro ao inserir direto no Supabase, usando fallback localStorage:', error);
+    }
+  } catch (e) {
+    // Prossegue para fallback
+    console.warn('Falha na inserção direta, usando fallback localStorage');
+  }
+
+  // 2) Fallback: salva no localStorage (para posterior sincronização quando logado)
+  try {
     const records = getConsumptionRecords();
     records.push(record);
     localStorage.setItem(CONSUMPTION_KEY, JSON.stringify(records));
-
-    // Não insere diretamente no Supabase aqui para evitar registros com registered_by = NULL.
-    // A sincronização em background (useSupabaseSync -> supabaseDirectSync) fará o insert
-    // sempre com registered_by = ID do usuário autenticado.
-    window.dispatchEvent(new Event('tire-consumption-updated'));
   } catch (error) {
-    console.error('Erro ao salvar registro de consumo:', error);
+    console.error('Erro ao salvar registro de consumo no localStorage:', error);
   }
+  window.dispatchEvent(new Event('tire-consumption-updated'));
 }
 
 // Atualiza o status do pneu para "Piloto" (localStorage + Supabase)
