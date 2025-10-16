@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 import { getStockEntries, getContainers, getTireModels, updateStockEntry, updateStockEntriesBatch, type StockEntry } from '../utils/storage';
+import { createClient } from '../utils/supabase/client';
 
 interface DiscardedTire {
   id: string;
@@ -77,7 +78,48 @@ export function TireDiscard() {
     }
   }, [barcode]);
 
-  const handleDiscard = () => {
+  // Helpers Supabase
+  const getSupabaseUserContext = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    const userId = user?.id ?? null;
+    const userName = (user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email) ?? null;
+    return { supabase, userId, userName } as const;
+  };
+
+  const recordDiscardInSupabase = async (entry: any) => {
+    try {
+      const { supabase, userId, userName } = await getSupabaseUserContext();
+
+      // 1) Insere registro em tire_discards (1 linha por descarte)
+      const insertPayload = {
+        barcode: entry.barcode,
+        model_name: entry.modelName,
+        model_type: entry.modelType,
+        container_name: entry.containerName || null,
+        discard_reason: null,
+        discarded_by: userId,
+        discarded_by_name: userName,
+      };
+      const { error: insertError } = await supabase.from('tire_discards').insert([insertPayload]);
+      if (insertError) throw insertError;
+
+      // 2) Atualiza status no stock_entries
+      const { error: updateError } = await supabase
+        .from('stock_entries')
+        .update({ status: 'Descarte', container_id: null, container_name: null, updated_at: new Date().toISOString() })
+        .eq('barcode', entry.barcode);
+      if (updateError) throw updateError;
+
+      return true;
+    } catch (e) {
+      console.error('Erro ao registrar descarte no Supabase:', e);
+      return false;
+    }
+  };
+
+  const handleDiscard = async () => {
     const trimmedBarcode = barcode.trim();
 
     if (!trimmedBarcode) {
@@ -124,7 +166,7 @@ export function TireDiscard() {
       return;
     }
 
-  // Atualiza o status para Descarte e limpa a alocação do contêiner
+  // Atualiza localmente (otimista) o status para Descarte e limpa container
   const success = updateStockEntry(trimmedBarcode, { status: 'Descarte', containerId: '', containerName: '' });
 
     if (success) {
@@ -145,6 +187,13 @@ export function TireDiscard() {
 
       toast.success('Pneu descartado com sucesso', {
         description: `${entry.modelName} - ${trimmedBarcode}`
+      });
+
+      // Grava no Supabase (registro e update de status)
+      recordDiscardInSupabase(entry).then((ok) => {
+        if (!ok) {
+          toast.error('Falha ao registrar descarte no servidor (Supabase)');
+        }
       });
 
       // Dispara evento para onboarding checklist
@@ -297,6 +346,7 @@ export function TireDiscard() {
 
       for (let i = 0; i < totalBatches; i++) {
         const batch = updates.slice(i * batchSize, (i + 1) * batchSize);
+        // Atualização local otimista
         updateStockEntriesBatch(batch);
         
         const progress = Math.round(((i + 1) / totalBatches) * 100);
@@ -304,6 +354,38 @@ export function TireDiscard() {
         
         // Pequeno delay para atualizar UI
         await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Supabase: insere descartar e atualiza status em lote
+      try {
+        const { supabase, userId, userName } = await getSupabaseUserContext();
+        const barcodes = selectedTires.map(t => t.barcode);
+
+        // 1) Insert em tire_discards (1 linha por pneu)
+        const insertRows = selectedTires.map(t => ({
+          barcode: t.barcode,
+          model_name: t.modelName,
+          model_type: t.modelType,
+          container_name: t.containerName || null,
+          discard_reason: null,
+          discarded_by: userId,
+          discarded_by_name: userName,
+        }));
+        const { error: bulkInsertError } = await supabase.from('tire_discards').insert(insertRows);
+        if (bulkInsertError) {
+          console.error('Erro no insert em massa de tire_discards:', bulkInsertError);
+        }
+
+        // 2) Update em stock_entries para todos barcodes
+        const { error: bulkUpdateError } = await supabase
+          .from('stock_entries')
+          .update({ status: 'Descarte', container_id: null, container_name: null, updated_at: new Date().toISOString() })
+          .in('barcode', barcodes);
+        if (bulkUpdateError) {
+          console.error('Erro no update em massa de stock_entries:', bulkUpdateError);
+        }
+      } catch (e) {
+        console.error('Erro Supabase no descarte em massa:', e);
       }
 
       toast.success('Descarte em massa concluído', {
