@@ -461,7 +461,10 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
     }
     __syncFromInProgress = true;
     __lastSyncFromAt = now;
-    console.log('📥 Starting sync FROM Supabase TO localStorage...');
+    if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('📥 Starting sync FROM Supabase TO localStorage...');
+    }
     
     const authed = await requireAuthenticated();
     if (!authed) {

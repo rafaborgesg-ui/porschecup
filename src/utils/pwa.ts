@@ -7,14 +7,19 @@ export async function registerServiceWorker() {
   // Não tenta registrar em ambientes de preview/desenvolvimento
   if (window.location.hostname.includes('figma') || 
       window.location.hostname === 'localhost') {
-    console.log('Service Worker desabilitado em ambiente de preview');
+  // eslint-disable-next-line no-console
+  console.log('Service Worker desabilitado em ambiente de preview');
     return;
   }
 
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registrado:', registration);
+      // debug-only
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('Service Worker registrado:', registration);
+      }
       
       // Verifica atualizações a cada 24h
       setInterval(() => {
@@ -36,7 +41,10 @@ export async function requestNotificationPermission() {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      console.log('Permissão de notificação concedida');
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('Permissão de notificação concedida');
+      }
       return true;
     }
   }
@@ -94,24 +102,42 @@ export function isAndroid(): boolean {
  * Adiciona o app à tela inicial (Android/Chrome/Edge)
  */
 export const addToHomeScreen = async (): Promise<boolean> => {
-  console.log('🚀 Tentando instalar PWA...');
+  if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+    // eslint-disable-next-line no-console
+    console.log('🚀 Tentando instalar PWA...');
+  }
   
   const deferredPrompt = (window as any).deferredPrompt;
   
   if (deferredPrompt) {
-    console.log('📱 Usando prompt nativo');
+    if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('📱 Usando prompt nativo');
+    }
     try {
       const promptResult = await deferredPrompt.prompt();
-      console.log('📤 Prompt resultado:', promptResult);
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('📤 Prompt resultado:', promptResult);
+      }
       
       const { outcome } = await deferredPrompt.userChoice;
-      console.log('👤 Escolha do usuário:', outcome);
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('👤 Escolha do usuário:', outcome);
+      }
       
       if (outcome === 'accepted') {
-        console.log('✅ Usuário aceitou instalar o PWA');
+        if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+          // eslint-disable-next-line no-console
+          console.log('✅ Usuário aceitou instalar o PWA');
+        }
         return true;
       } else {
-        console.log('❌ Usuário rejeitou instalar o PWA');
+        if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+          // eslint-disable-next-line no-console
+          console.log('❌ Usuário rejeitou instalar o PWA');
+        }
         return false;
       }
     } catch (error) {
@@ -121,7 +147,10 @@ export const addToHomeScreen = async (): Promise<boolean> => {
   }
   
   // Fallback para todos os navegadores
-  console.log('ℹ️ Prompt nativo não disponível, mostrando instruções');
+  if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+    // eslint-disable-next-line no-console
+    console.log('ℹ️ Prompt nativo não disponível, mostrando instruções');
+  }
   
   const userAgent = navigator.userAgent.toLowerCase();
   let instructions = '';
@@ -145,7 +174,10 @@ export const addToHomeScreen = async (): Promise<boolean> => {
   if (shouldProceed && (userAgent.includes('chrome') || userAgent.includes('edge'))) {
     // Para desktop, abre em nova aba para facilitar a instalação
     setTimeout(() => {
-      console.log('💡 Dica: Procure o ícone de instalação na barra de endereços');
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('💡 Dica: Procure o ícone de instalação na barra de endereços');
+      }
     }, 1000);
   }
   
@@ -244,20 +276,34 @@ export function getDisplayMode(): 'browser' | 'standalone' | 'minimal-ui' | 'ful
  */
 export function setupInstallPrompt() {
   // Configura em todos os ambientes de produção (Vercel)
-  console.log('🚀 Configurando PWA Install Prompt...');
-  console.log('🌐 Hostname:', window.location.hostname);
-  console.log('📱 User Agent:', navigator.userAgent);
+  if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+    // eslint-disable-next-line no-console
+    console.log('🚀 Configurando PWA Install Prompt...');
+    // eslint-disable-next-line no-console
+    console.log('🌐 Hostname:', window.location.hostname);
+    // eslint-disable-next-line no-console
+    console.log('📱 User Agent:', navigator.userAgent);
+  }
   
   // Verifica se é um dispositivo compatível com PWA
   const isCompatible = isMobile() || isDesktopCompatible();
-  console.log('✅ PWA Compatible:', isCompatible);
+  if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+    // eslint-disable-next-line no-console
+    console.log('✅ PWA Compatible:', isCompatible);
+  }
   
   // Para iOS, mostra prompt personalizado imediatamente se for móvel
   if (isIOS()) {
-    console.log('🍎 iOS detectado - Configurando prompt personalizado');
+    if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('🍎 iOS detectado - Configurando prompt personalizado');
+    }
     setTimeout(() => {
       if (!isPWA() && !localStorage.getItem('pwa-install-dismissed')) {
-        console.log('📲 Disparando evento PWA para iOS');
+        if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+          // eslint-disable-next-line no-console
+          console.log('📲 Disparando evento PWA para iOS');
+        }
         window.dispatchEvent(new Event('pwa-installable'));
       }
     }, 3000); // Aguarda 3 segundos após carregar
@@ -269,14 +315,20 @@ export function setupInstallPrompt() {
   let promptShown = false;
   
   window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('📱 beforeinstallprompt capturado!');
+    if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('📱 beforeinstallprompt capturado!');
+    }
     e.preventDefault();
     deferredPrompt = e;
     (window as any).deferredPrompt = e;
     
     // Dispara evento customizado para mostrar botão de instalação
     if (!promptShown && !localStorage.getItem('pwa-install-dismissed')) {
-      console.log('🎯 Disparando evento pwa-installable');
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('🎯 Disparando evento pwa-installable');
+      }
       promptShown = true;
       setTimeout(() => {
         window.dispatchEvent(new Event('pwa-installable'));
@@ -285,7 +337,10 @@ export function setupInstallPrompt() {
   });
   
   window.addEventListener('appinstalled', () => {
-    console.log('✅ PWA instalado com sucesso');
+    if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+      // eslint-disable-next-line no-console
+      console.log('✅ PWA instalado com sucesso');
+    }
     deferredPrompt = null;
     (window as any).deferredPrompt = null;
     localStorage.removeItem('pwa-install-dismissed');
@@ -295,8 +350,12 @@ export function setupInstallPrompt() {
   // Fallback mais rápido: se não receber beforeinstallprompt em 3 segundos
   setTimeout(() => {
     if (!deferredPrompt && !isPWA() && isCompatible && !localStorage.getItem('pwa-install-dismissed') && !promptShown) {
-      console.log('⚠️ Fallback: Mostrando prompt sem beforeinstallprompt');
-      console.log('💡 No desktop Chrome, procure o ícone de instalação na barra de endereços');
+      if ((window as any).__DEBUG_LOGS || localStorage.getItem('DEBUG_LOGS') === '1') {
+        // eslint-disable-next-line no-console
+        console.log('⚠️ Fallback: Mostrando prompt sem beforeinstallprompt');
+        // eslint-disable-next-line no-console
+        console.log('💡 No desktop Chrome, procure o ícone de instalação na barra de endereços');
+      }
       promptShown = true;
       window.dispatchEvent(new Event('pwa-installable'));
     }

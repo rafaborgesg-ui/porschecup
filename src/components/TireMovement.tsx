@@ -143,14 +143,20 @@ export function TireMovement() {
       loadTireModels();
     };
 
+    const handleMovementsUpdate = () => {
+      loadMovements();
+    };
+
     window.addEventListener('stock-entries-updated', handleStockUpdate);
     window.addEventListener('containers-updated', handleContainersUpdate);
     window.addEventListener('tire-models-updated', handleModelsUpdate);
+    window.addEventListener('tire-movements-updated', handleMovementsUpdate);
     
     return () => {
       window.removeEventListener('stock-entries-updated', handleStockUpdate);
       window.removeEventListener('containers-updated', handleContainersUpdate);
       window.removeEventListener('tire-models-updated', handleModelsUpdate);
+      window.removeEventListener('tire-movements-updated', handleMovementsUpdate);
     };
   }, []);
 
@@ -170,6 +176,28 @@ export function TireMovement() {
       
       if (error) {
         console.error('Erro ao carregar movimentações:', error);
+        // Fallback: tenta carregar do localStorage se disponível
+        try {
+          const raw = localStorage.getItem('porsche-cup-tire-movements');
+          if (raw) {
+            const ls = JSON.parse(raw);
+            const movementsList = (ls || []).map((mov: any) => ({
+              id: mov.id,
+              barcode: mov.barcode,
+              modelName: mov.modelName,
+              modelType: mov.modelType,
+              fromContainerId: mov.fromContainerId,
+              fromContainerName: mov.fromContainerName,
+              toContainerId: mov.toContainerId,
+              toContainerName: mov.toContainerName,
+              movedBy: mov.movedByName || mov.movedBy || '-',
+              reason: mov.reason,
+              timestamp: mov.timestamp
+            }));
+            setMovements(movementsList);
+            return;
+          }
+        } catch {}
         setMovements([]);
       } else {
         // Mapeia para o formato esperado pelo componente
@@ -182,7 +210,7 @@ export function TireMovement() {
           fromContainerName: mov.from_container_name,
           toContainerId: mov.to_container_id,
           toContainerName: mov.to_container_name,
-          movedBy: mov.moved_by_name,
+          movedBy: mov.moved_by_name || mov.moved_by || '-',
           reason: mov.reason,
           timestamp: mov.created_at
         }));
@@ -599,7 +627,7 @@ export function TireMovement() {
           </div>
         </div>
 
-        <Tabs defaultValue="move" className="space-y-6">
+  <Tabs defaultValue="move" className="space-y-6" onValueChange={(v) => { if (v === 'history') loadMovements(); }}>
           <TabsList className="grid w-full max-w-3xl grid-cols-3">
             <TabsTrigger value="move">Individual</TabsTrigger>
             <TabsTrigger value="bulk">Movimentação em Massa</TabsTrigger>
