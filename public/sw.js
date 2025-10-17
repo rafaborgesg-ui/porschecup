@@ -46,19 +46,21 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Somente cacheia respostas 200 OK de requisições GET
-        if (response && response.status === 200) {
+        // Somente cacheia respostas 200 OK de requisições GET e não-opaques
+        if (response && response.status === 200 && response.type !== 'opaque') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME)
             .then((cache) => {
-              cache.put(event.request, responseToCache);
+              // Usa a URL como chave para garantir método GET no Cache API
+              const cacheKey = event.request.url;
+              cache.put(cacheKey, responseToCache).catch(() => {});
             })
             .catch(() => {});
         }
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((cached) => cached || Response.error());
       })
   );
 });
