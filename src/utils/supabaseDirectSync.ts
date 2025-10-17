@@ -28,6 +28,11 @@ const addSyncLog = (log: Omit<SyncLog, 'timestamp'>) => {
   }
 };
 
+// Guard and throttle to avoid overlapping or frequent inbound syncs
+let __syncFromInProgress = false;
+let __lastSyncFromAt = 0;
+const __MIN_SYNC_FROM_INTERVAL_MS = 5000;
+
 async function getAuthRole(): Promise<'admin' | 'operator' | 'anon'> {
   try {
     const { data } = await supabase.auth.getUser();
@@ -449,6 +454,13 @@ export async function syncTireStatusToSupabase(): Promise<boolean> {
  */
 export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
   try {
+    const now = Date.now();
+    if (__syncFromInProgress || (now - __lastSyncFromAt) < __MIN_SYNC_FROM_INTERVAL_MS) {
+      addSyncLog({ table: 'all', operation: 'sync', message: 'Skipped duplicate inbound sync (guard/throttle)' });
+      return true;
+    }
+    __syncFromInProgress = true;
+    __lastSyncFromAt = now;
     console.log('📥 Starting sync FROM Supabase TO localStorage...');
     
     const authed = await requireAuthenticated();
@@ -702,6 +714,8 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
   } catch (error) {
     console.error('❌ Error syncing from Supabase:', error);
     return false;
+  } finally {
+    __syncFromInProgress = false;
   }
 }
 

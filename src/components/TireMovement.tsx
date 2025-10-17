@@ -475,22 +475,25 @@ export function TireMovement() {
       // Atualiza estoque em lote no localStorage
       updateStockEntriesBatch(batchUpdates);
       
-      // Atualiza estoque em lote no Supabase
-      for (const update of batchUpdates) {
-        const { error: updateError } = await supabase
+      // Atualiza estoque em lote no Supabase (single query by barcodes)
+      try {
+        const allBarcodes = batchUpdates.map(b => b.barcode);
+        const { error: batchErr } = await supabase
           .from('stock_entries')
           .update({
-            container_id: update.updates.containerId,
-            container_name: update.updates.containerName,
-            updated_at: new Date().toISOString()
+            container_id: targetCont.id,
+            container_name: targetCont.name,
+            updated_at: new Date().toISOString(),
           })
-          .eq('barcode', update.barcode);
-        
-        if (updateError) {
-          console.error(`Erro ao atualizar pneu ${update.barcode} no Supabase:`, updateError);
+          .in('barcode', allBarcodes);
+        if (batchErr) {
+          console.error('Erro ao atualizar estoque em lote no Supabase:', batchErr);
+        } else {
+          console.log(`✅ ${batchUpdates.length} pneus atualizados no Supabase (lote)`);
         }
+      } catch (e) {
+        console.error('Erro inesperado no update em lote do Supabase:', e);
       }
-      console.log(`✅ ${batchUpdates.length} pneus atualizados no Supabase`);
       
       // Pequena pausa para mostrar 100% completo
       await new Promise(resolve => setTimeout(resolve, 500));

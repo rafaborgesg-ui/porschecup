@@ -93,10 +93,14 @@ export function useSupabaseSync() {
     }, SYNC_INTERVAL);
 
     // Escuta mudanças locais para sincronizar para o Supabase (background)
+    // Simple debounce for outbound sync to avoid flooding
+    let outboundDebounce: any;
     const handleLocalChange = () => {
       if (!mounted) return;
-      // Sincroniza em background, sem bloquear a UI
-      setTimeout(() => syncToSupabase(), 1000);
+      clearTimeout(outboundDebounce);
+      outboundDebounce = setTimeout(() => {
+        syncToSupabase();
+      }, 1000);
     };
 
     window.addEventListener('tire-models-updated', handleLocalChange);
@@ -109,6 +113,7 @@ export function useSupabaseSync() {
     return () => {
       mounted = false;
       clearInterval(interval);
+      clearTimeout(outboundDebounce);
       window.removeEventListener('tire-models-updated', handleLocalChange);
       window.removeEventListener('containers-updated', handleLocalChange);
       window.removeEventListener('stock-entries-updated', handleLocalChange);
