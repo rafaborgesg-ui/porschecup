@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { getStockEntries, getTireModels, getContainers, type StockEntry } from '../utils/storage';
+import { getStockEntries, getTireModels, getContainers, getTireStatus, type StockEntry } from '../utils/storage';
 
 interface StockSummary {
   model: string;
@@ -38,6 +38,34 @@ export function Reports() {
   const [occupancyFilterLocation, setOccupancyFilterLocation] = useState('all');
   const [occupancyFilterOccupancy, setOccupancyFilterOccupancy] = useState('all');
   const [occupancyFilterStatus, setOccupancyFilterStatus] = useState('all');
+  // Mapa de cores por status (Cadastro de Status)
+  const [statusColorByName, setStatusColorByName] = useState<Record<string, string>>({});
+
+  // Carrega cores dos status e escuta alterações
+  useEffect(() => {
+    const loadStatusColors = () => {
+      const list = getTireStatus();
+      const map: Record<string, string> = {};
+      list.forEach(s => { map[s.name] = s.color; });
+      setStatusColorByName(map);
+    };
+    loadStatusColors();
+    const handler = () => loadStatusColors();
+    window.addEventListener('tire-status-updated', handler);
+    return () => window.removeEventListener('tire-status-updated', handler);
+  }, []);
+
+  const colorFor = (name: string): string => {
+    if (statusColorByName[name]) return statusColorByName[name];
+    // Fallbacks padrão
+    switch (name) {
+      case 'Novo': return '#3B82F6';
+      case 'Piloto': return '#F59E0B';
+      case 'Descarte': return '#DC2626';
+      case 'Descarte Piloto': return '#F59E0B';
+      default: return '#6B7280';
+    }
+  };
 
   // Carrega entradas do localStorage e escuta todas as atualizações
   useEffect(() => {
@@ -229,7 +257,7 @@ export function Reports() {
           <Card className="p-6 bg-white border border-gray-200 shadow-sm" style={{ contain: 'layout style paint' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500 mb-1">Modelos Ativos</p>
+                <p className="text-sm text-gray-500 mb-1">Modelos em Estoque</p>
                 <p className="text-gray-900">{totalModels}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -392,8 +420,10 @@ export function Reports() {
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="Novo">Novo</SelectItem>
-                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    
                     <SelectItem value="Descarte">Descarte</SelectItem>
+                    <SelectItem value="Piloto">Piloto</SelectItem>
+                    <SelectItem value="Descarte Piloto">Descarte Piloto</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -673,8 +703,10 @@ export function Reports() {
                   <SelectContent>
                     <SelectItem value="all">Todos os status</SelectItem>
                     <SelectItem value="has-novo">Com pneus Novos</SelectItem>
-                    <SelectItem value="has-ativo">Com pneus Ativos</SelectItem>
+                    
                     <SelectItem value="has-descarte">Com pneus Descarte</SelectItem>
+                    <SelectItem value="has-piloto">Com pneus Piloto</SelectItem>
+                    <SelectItem value="has-descarte-piloto">Com pneus Descarte Piloto</SelectItem>
                     <SelectItem value="empty">Vazios</SelectItem>
                   </SelectContent>
                 </Select>
@@ -721,17 +753,23 @@ export function Reports() {
                     // Filtro de status dos pneus
                     const tiresInContainer = entries.filter(e => e.containerId === container.id);
                     const hasNovo = tiresInContainer.some(e => e.status === 'Novo');
-                    const hasAtivo = tiresInContainer.some(e => e.status === 'Ativo');
+                    const hasAtivo = tiresInContainer.some(e => e.status === 'Piloto');
                     const hasDescarte = tiresInContainer.some(e => e.status === 'Descarte');
+                    const hasPiloto = tiresInContainer.some(e => e.status === 'Piloto');
+                    const hasDescartePiloto = tiresInContainer.some(e => e.status === 'Descarte Piloto');
                     const isEmpty = tiresInContainer.length === 0;
                     
                     let matchesStatus = true;
                     if (occupancyFilterStatus === 'has-novo') {
                       matchesStatus = hasNovo;
                     } else if (occupancyFilterStatus === 'has-ativo') {
-                      matchesStatus = hasAtivo;
+                      matchesStatus = hasAtivo; // legacy value kept for compatibility
                     } else if (occupancyFilterStatus === 'has-descarte') {
                       matchesStatus = hasDescarte;
+                    } else if (occupancyFilterStatus === 'has-piloto') {
+                      matchesStatus = hasPiloto;
+                    } else if (occupancyFilterStatus === 'has-descarte-piloto') {
+                      matchesStatus = hasDescartePiloto;
                     } else if (occupancyFilterStatus === 'empty') {
                       matchesStatus = isEmpty;
                     }
@@ -779,8 +817,9 @@ export function Reports() {
                             const tiresInContainer = entries.filter(e => e.containerId === container.id);
                             const statusCounts = {
                               Novo: tiresInContainer.filter(e => e.status === 'Novo').length,
-                              Ativo: tiresInContainer.filter(e => e.status === 'Ativo').length,
                               Descarte: tiresInContainer.filter(e => e.status === 'Descarte').length,
+                              Piloto: tiresInContainer.filter(e => e.status === 'Piloto').length,
+                              DescartePiloto: tiresInContainer.filter(e => e.status === 'Descarte Piloto').length,
                             };
                             
                             return (
@@ -798,28 +837,36 @@ export function Reports() {
                                   <span className="text-sm text-gray-900">{container.capacity}</span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center justify-center gap-1.5" title={`Novo: ${statusCounts.Novo} | Ativo: ${statusCounts.Ativo} | Descarte: ${statusCounts.Descarte}`}>
+                                  <div className="flex items-center justify-center gap-1.5" title={`Novo: ${statusCounts.Novo} | Descarte: ${statusCounts.Descarte} | Piloto: ${statusCounts.Piloto} | Descarte Piloto: ${statusCounts.DescartePiloto}`}>
                                     {statusCounts.Novo > 0 && (
                                       <div className="group relative">
-                                        <div className="w-3 h-3 rounded-sm bg-blue-500 border border-blue-600 shadow-sm" />
+                                        <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Novo'), borderColor: colorFor('Novo') }} />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                                           {statusCounts.Novo} Novo{statusCounts.Novo !== 1 ? 's' : ''}
                                         </div>
                                       </div>
                                     )}
-                                    {statusCounts.Ativo > 0 && (
+                                    {statusCounts.Descarte > 0 && (
                                       <div className="group relative">
-                                        <div className="w-3 h-3 rounded-sm bg-green-500 border border-green-600 shadow-sm" />
+                                        <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Descarte'), borderColor: colorFor('Descarte') }} />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                          {statusCounts.Ativo} Ativo{statusCounts.Ativo !== 1 ? 's' : ''}
+                                          {statusCounts.Descarte} Descarte{statusCounts.Descarte !== 1 ? 's' : ''}
                                         </div>
                                       </div>
                                     )}
-                                    {statusCounts.Descarte > 0 && (
+                                    {statusCounts.Piloto > 0 && (
                                       <div className="group relative">
-                                        <div className="w-3 h-3 rounded-sm bg-red-500 border border-red-600 shadow-sm" />
+                                        <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Piloto'), borderColor: colorFor('Piloto') }} />
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                          {statusCounts.Descarte} Descarte{statusCounts.Descarte !== 1 ? 's' : ''}
+                                          {statusCounts.Piloto} Piloto{statusCounts.Piloto !== 1 ? 's' : ''}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {statusCounts.DescartePiloto > 0 && (
+                                      <div className="group relative">
+                                        <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Descarte Piloto'), borderColor: colorFor('Descarte Piloto') }} />
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                          {statusCounts.DescartePiloto} Descarte Piloto{statusCounts.DescartePiloto !== 1 ? 's' : ''}
                                         </div>
                                       </div>
                                     )}
@@ -885,16 +932,20 @@ export function Reports() {
                         </div>
                         <div className="flex items-center justify-center gap-6 text-xs">
                           <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded-sm bg-blue-500 border border-blue-600 shadow-sm" />
+                            <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Novo'), borderColor: colorFor('Novo') }} />
                             <span className="text-gray-600">Novo</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded-sm bg-green-500 border border-green-600 shadow-sm" />
-                            <span className="text-gray-600">Ativo</span>
+                            <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Piloto'), borderColor: colorFor('Piloto') }} />
+                            <span className="text-gray-600">Piloto</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded-sm bg-red-500 border border-red-600 shadow-sm" />
+                            <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Descarte'), borderColor: colorFor('Descarte') }} />
                             <span className="text-gray-600">Descarte</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-sm border shadow-sm" style={{ backgroundColor: colorFor('Descarte Piloto'), borderColor: colorFor('Descarte Piloto') }} />
+                            <span className="text-gray-600">Descarte Piloto</span>
                           </div>
                         </div>
                       </div>
@@ -980,9 +1031,10 @@ export function Reports() {
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="Novo">Novo</SelectItem>
-                        <SelectItem value="Ativo">Ativo</SelectItem>
+                        
                         <SelectItem value="Descarte">Descarte</SelectItem>
                         <SelectItem value="Piloto">Piloto</SelectItem>
+                        <SelectItem value="Descarte Piloto">Descarte Piloto</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1035,9 +1087,9 @@ export function Reports() {
                                 variant="secondary"
                                 className={
                                   entry.status === 'Novo' ? 'bg-blue-100 text-blue-700' :
-                                  entry.status === 'Ativo' ? 'bg-green-100 text-green-700' :
                                   entry.status === 'Descarte' ? 'bg-red-100 text-red-700' :
-                                  entry.status === 'Piloto' ? 'bg-orange-100 text-orange-700' :
+                                  entry.status === 'Piloto' ? 'bg-amber-100 text-amber-700' :
+                                  entry.status === 'Descarte Piloto' ? 'bg-amber-100 text-amber-700' :
                                   'bg-gray-100 text-gray-700'
                                 }
                               >

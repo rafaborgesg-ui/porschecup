@@ -266,9 +266,9 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
     console.log(`📊 Sample valid entry:`, entriesForDB[0]);
 
     // Proteção: não sobrescrever pilot/team/notes com NULL caso o Supabase já tenha valor.
-    // Busca valores atuais no Supabase para barcodes com status 'Piloto' e pilot/team/notes nulos localmente.
+    // Busca valores atuais no Supabase para barcodes com qualquer status quando pilot/team/notes estão vazios localmente.
     const missingInfoBarcodes = entriesForDB
-      .filter(e => e.status === 'Piloto' && (!e.pilot || !e.team || !e.notes))
+      .filter(e => (!e.pilot || !e.team || !e.notes))
       .map(e => e.barcode);
 
     if (missingInfoBarcodes.length > 0) {
@@ -278,7 +278,7 @@ export async function syncStockEntriesToSupabase(): Promise<boolean> {
           .select('barcode,pilot,team,notes')
           .in('barcode', missingInfoBarcodes);
 
-        if (!fetchError && existingRows && existingRows.length > 0) {
+  if (!fetchError && existingRows && existingRows.length > 0) {
           const existingMap: Record<string, any> = Object.fromEntries(
             existingRows.map((r: any) => [r.barcode, r])
           );
@@ -636,16 +636,52 @@ export async function syncFromSupabaseToLocalStorage(): Promise<boolean> {
           .order('name');
 
         if (!statError && status) {
-          const localStatus = status.map((stat: any) => ({
+          // Remote status from Supabase
+          const remoteStatus: Array<{ id: string; name: string; color: string; isDefault: boolean; createdAt: string }> = status.map((stat: any) => ({
             id: stat.id,
             name: stat.name,
             color: stat.color,
             isDefault: stat.is_default,
             createdAt: stat.created_at
           }));
-          
-          localStorage.setItem('porsche_cup_tire_status', JSON.stringify(localStatus));
-          console.log(`🏷️ Synced ${localStatus.length} tire status from Supabase`);
+
+          // Merge with local to preserve local edits (e.g., color changes in UI)
+          let localExisting: Array<{ id: string; name: string; color: string; isDefault: boolean; createdAt: string }> = [];
+          try {
+            const raw = localStorage.getItem('porsche_cup_tire_status');
+            if (raw) localExisting = JSON.parse(raw);
+          } catch {}
+
+          const byNameLocal: Map<string, { id: string; name: string; color: string; isDefault: boolean; createdAt: string }>
+            = new Map(localExisting.map((s) => [s.name, s]));
+          const byNameRemote: Map<string, { id: string; name: string; color: string; isDefault: boolean; createdAt: string }>
+            = new Map(remoteStatus.map((s) => [s.name, s]));
+
+          // Start with all remote records, prefer local color if exists
+          const mergedMap: Map<string, { id: string; name: string; color: string; isDefault: boolean; createdAt: string }>
+            = new Map();
+          for (const [name, remote] of byNameRemote.entries()) {
+            const local = byNameLocal.get(name);
+            mergedMap.set(name, {
+              id: remote.id,
+              name: remote.name,
+              isDefault: remote.isDefault,
+              color: local?.color ?? remote.color,
+              // keep createdAt from local if available (older custom), else remote
+              createdAt: local?.createdAt ?? remote.createdAt,
+            });
+          }
+
+          // Add any local-only custom statuses not present remotely
+          for (const [name, local] of byNameLocal.entries()) {
+            if (!mergedMap.has(name)) {
+              mergedMap.set(name, local);
+            }
+          }
+
+          const mergedStatus = Array.from(mergedMap.values());
+          localStorage.setItem('porsche_cup_tire_status', JSON.stringify(mergedStatus));
+          console.log(`🏷️ Synced ${remoteStatus.length} tire status from Supabase (merged to ${mergedStatus.length})`);
         }
       } catch (err) {
         console.error('Error syncing tire status from Supabase:', err);

@@ -226,7 +226,7 @@ export function Login({ onLogin, onSignUp }: LoginProps) {
             />
           </div>
 
-          <p className="text-gray-400">Supply Chain System</p>
+          <p className="text-gray-400">Conecta CUP - Intranet Porsche Cup Brasil</p>
         </div>
 
         {/* Login Card */}

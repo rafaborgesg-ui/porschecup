@@ -36,7 +36,7 @@ interface TireEntry {
   containerId: string;
   containerName: string;
   timestamp: string;
-  status?: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto';
+  status?: 'Novo' | 'Piloto' | 'Descarte' | 'Descarte Piloto';
   sessionId?: string;
 }
 
@@ -72,7 +72,7 @@ export function StockAdjustment() {
     modelId: '',
     containerId: '',
     timestamp: '',
-    status: 'Novo' as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
+  status: 'Novo' as 'Novo' | 'Piloto' | 'Descarte' | 'Descarte Piloto',
   });
   const [tireModels, setTireModels] = useState<any[]>([]);
   const [containers, setContainers] = useState<any[]>([]);
@@ -164,11 +164,13 @@ export function StockAdjustment() {
       if (filterStatus === 'new') {
         filtered = filtered.filter(entry => entry.status === 'Novo');
       } else if (filterStatus === 'active') {
-        filtered = filtered.filter(entry => entry.status === 'Ativo');
+        filtered = filtered.filter(entry => entry.status === 'Piloto');
       } else if (filterStatus === 'discarded') {
         filtered = filtered.filter(entry => entry.status === 'Descarte');
       } else if (filterStatus === 'pilot') {
         filtered = filtered.filter(entry => entry.status === 'Piloto');
+      } else if (filterStatus === 'pilot-discard') {
+        filtered = filtered.filter(entry => entry.status === 'Descarte Piloto');
       }
     }
 
@@ -535,9 +537,10 @@ export function StockAdjustment() {
                 <SelectContent>
                   <SelectItem value="all">Todos os Status</SelectItem>
                   <SelectItem value="new">Novo</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="active">Piloto</SelectItem>
                   <SelectItem value="discarded">Descarte</SelectItem>
                   <SelectItem value="pilot">Piloto</SelectItem>
+                  <SelectItem value="pilot-discard">Descarte Piloto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -746,10 +749,14 @@ export function StockAdjustment() {
                         <Badge
                           variant="secondary"
                           className={
-                            entry.status === 'Descarte' 
-                              ? 'bg-red-100 text-red-700' 
+                            entry.status === 'Descarte'
+                              ? 'bg-red-100 text-red-700'
                               : entry.status === 'Novo'
                               ? 'bg-blue-100 text-blue-700'
+                              : entry.status === 'Piloto'
+                              ? 'bg-amber-100 text-amber-700'
+                              : entry.status === 'Descarte Piloto'
+                              ? 'bg-amber-50 text-amber-700'
                               : 'bg-green-100 text-green-700'
                           }
                         >
@@ -764,10 +771,7 @@ export function StockAdjustment() {
                               {new Date(entry.timestamp).toLocaleDateString('pt-BR')}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {new Date(entry.timestamp).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                              {new Date(entry.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                         </div>
@@ -796,12 +800,10 @@ export function StockAdjustment() {
               </table>
             )}
           </div>
-
-          {/* Pagination */}
-          {filteredEntries.length > 0 && (
+          {filteredEntries.length > itemsPerPage && (
             <div className="p-4 border-t border-gray-200 flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, filteredEntries.length)} de {filteredEntries.length} registros
+                Mostrando {(currentPage - 1) * itemsPerPage + 1} a {Math.min(currentPage * itemsPerPage, filteredEntries.length)} de {filteredEntries.length} registros
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -958,7 +960,7 @@ export function StockAdjustment() {
               <Label htmlFor="edit-status">Status do Pneu</Label>
               <Select 
                 value={editFormData.status} 
-                onValueChange={(value: 'Novo' | 'Ativo' | 'Descarte' | 'Piloto') => setEditFormData({ ...editFormData, status: value })}
+                onValueChange={(value: 'Novo' | 'Piloto' | 'Descarte' | 'Descarte Piloto') => setEditFormData({ ...editFormData, status: value })}
               >
                 <SelectTrigger id="edit-status">
                   <SelectValue placeholder="Selecione o status" />
@@ -970,12 +972,7 @@ export function StockAdjustment() {
                       <span>Novo</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="Ativo">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span>Ativo</span>
-                    </div>
-                  </SelectItem>
+                  
                   <SelectItem value="Descarte">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -988,19 +985,20 @@ export function StockAdjustment() {
                       <span>Piloto</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="Piloto">
+                  <SelectItem value="Descarte Piloto">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      <span>Piloto</span>
+                      <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                      <span>Descarte Piloto</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
                 {editFormData.status === 'Novo' && '🔵 Pneu novo, ainda não utilizado'}
-                {editFormData.status === 'Ativo' && '🟢 Pneu em uso ativo'}
+                
                 {editFormData.status === 'Descarte' && '🔴 Pneu marcado para descarte'}
                 {editFormData.status === 'Piloto' && '🟠 Pneu em condição de piloto (em avaliação/teste)'}
+                {editFormData.status === 'Descarte Piloto' && '🟡 Pneu descartado em fase de piloto'}
               </p>
             </div>
 

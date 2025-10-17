@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  syncAllDataToSupabase
+  syncAllDataToSupabase,
+  syncFromSupabaseToLocalStorage,
 } from './supabaseDirectSync';
 import {
   getTireModels,
@@ -50,11 +51,14 @@ export function useSupabaseSync() {
     }
   };
 
-  // Sincroniza dados do localStorage para Supabase em background
+  // Sincroniza dados do Supabase para localStorage em background
   const syncFromSupabase = async () => {
-    // Por enquanto, apenas registra que seria feito uma sincronização de entrada
-    // Focamos na sincronização de saída (localStorage -> Supabase)
-    console.log('📥 Sync from Supabase temporarily disabled - using localStorage as source of truth');
+    try {
+      await syncFromSupabaseToLocalStorage();
+    } catch (err) {
+      // Não interrompe o app caso falhe; registra erro silenciosamente
+      console.warn('⚠️ Failed to sync FROM Supabase (will retry later):', err);
+    }
   };
 
   useEffect(() => {

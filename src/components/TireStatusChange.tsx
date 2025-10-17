@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, Package, CheckCircle2, Filter, AlertCircle, Barcode, Layers, FileUp, Download } from 'lucide-react';
+import { RefreshCw, Package, CheckCircle2, Filter, AlertCircle, Barcode, Layers, FileUp, Download, Database } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { createClient } from '../utils/supabase/client';
+import { syncFromSupabaseToLocalStorage } from '../utils/supabaseDirectSync';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -43,6 +46,11 @@ export function TireStatusChange() {
   const [selectedTires, setSelectedTires] = useState<StockEntry[]>([]);
   const [bulkNewStatus, setBulkNewStatus] = useState<string>('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  // Estados para ARCS
+  const [arcsLoading, setArcsLoading] = useState(false);
+  const [arcsProgress, setArcsProgress] = useState<{ current: number; total: number } | null>(null);
+  const [arcsResult, setArcsResult] = useState<{success: number, fail: number, errors: string[]}>();
+  const [arcsError, setArcsError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -71,6 +79,148 @@ export function TireStatusChange() {
     
     const status = getTireStatus();
     setStatusList(status);
+  };
+
+  // Processa planilha ARCS
+  const handleArcsFile = async (file: File) => {
+    setArcsError(null);
+    setArcsResult(undefined);
+  setArcsLoading(true);
+  setArcsProgress(null);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      // Helper: normaliza string (sem acento, trim e minúscula)
+      const norm = (s: any) => String(s ?? '')
+        .normalize('NFD')
+        .replace(/\p{Diacritic}+/gu, '')
+        .toLowerCase()
+        .trim();
+
+      // Mapeia um objeto com chaves normalizadas
+      const normalizeKeys = (row: any) => {
+        const out: Record<string, any> = {};
+        Object.keys(row).forEach((k) => {
+          out[norm(k)] = row[k];
+        });
+        return out;
+      };
+
+      if (!json.length) {
+        setArcsError('Planilha inválida ou sem coluna Serial.');
+        setArcsLoading(false);
+        return;
+      }
+      const supabase = createClient();
+      let success = 0;
+      let fail = 0;
+      let notFound = 0;
+      const errors: string[] = [];
+      const total = json.length;
+      let index = 0;
+      for (const row of json) {
+        index++;
+        if (index === 1 || index % 5 === 0 || index === total) {
+          setArcsProgress({ current: index, total });
+        }
+        const r = normalizeKeys(row);
+
+        // Obter serial (suporta 'serial' ou similares)
+        const rawSerial = r['serial'];
+        let serial = String(rawSerial ?? '').trim();
+        if (!serial) {
+          // Tenta outra chave comum
+          const altKey = Object.keys(r).find(k => k.includes('serial'));
+          serial = String(altKey ? r[altKey] : '').trim();
+        }
+        if (!serial) continue; // pula linha sem serial
+
+        // Ajuste para 8 dígitos (caso seja 7, adiciona 0 à esquerda; se <8, faz padStart; se >8, mantém)
+        if (/^\d+$/.test(serial)) {
+          if (serial.length < 8) serial = serial.padStart(8, '0');
+          // se maior que 8, mantém como está (assume válido no sistema)
+        } else {
+          // Remove caracteres não numéricos e tenta ajustar
+          const digits = serial.replace(/\D/g, '');
+          if (digits.length === 7) serial = ('0' + digits);
+          else if (digits.length >= 8) serial = digits.slice(-8);
+          else serial = digits.padStart(8, '0');
+        }
+
+        // Obter condição
+        const rawCond = r['condicao'] ?? r['condição'] ?? r['condicao '] ?? '';
+        const condicao = norm(rawCond);
+
+        // Obter piloto (preserva capitalização original)
+        const pilotRaw = r['piloto'] ?? r['piloto '] ?? '';
+        const pilotName = String(pilotRaw ?? '').trim();
+
+        // Mapeamento de condição -> status
+        let status = '';
+        if (condicao === 'guardado' || condicao === 'guardada') status = 'Piloto';
+        else if (condicao === 'descartado' || condicao === 'descartada' || condicao === 'descarte') status = 'Descarte Piloto';
+
+        // Monta payload de atualização (atualiza status quando mapeado e/ou piloto quando informado)
+        const updatePayload: Record<string, any> = {};
+        if (status) updatePayload.status = status;
+        if (pilotName) updatePayload.pilot = pilotName;
+
+        // Se não há nada para atualizar nesta linha, ignora
+        if (Object.keys(updatePayload).length === 0) continue;
+
+        // Atualiza e verifica se houve match
+        let { data, error } = await supabase
+          .from('stock_entries')
+          .update(updatePayload)
+          .eq('barcode', serial)
+          .select('barcode');
+        if (error || !data || data.length === 0) {
+          // Retry once by verifying existence and doing a targeted update
+          const { data: exists, error: findErr } = await supabase
+            .from('stock_entries')
+            .select('barcode')
+            .eq('barcode', serial);
+          if (findErr) {
+            fail++;
+            errors.push(`Erro ao verificar ${serial}: ${findErr.message}`);
+          } else if (!exists || exists.length === 0) {
+            notFound++;
+          } else {
+            // Retry once
+            const { data: retryData, error: retryErr } = await supabase
+              .from('stock_entries')
+              .update(updatePayload)
+              .eq('barcode', serial)
+              .select('barcode');
+            if (retryErr || !retryData || retryData.length === 0) {
+              fail++;
+              errors.push(`Falha ao atualizar ${serial}: ${retryErr ? retryErr.message : 'sem linhas afetadas'}`);
+            } else {
+              success += retryData.length;
+            }
+          }
+        } else {
+          success += data.length;
+        }
+      }
+      // Inclui notFound no relatório como falhas informativas
+      if (notFound > 0) {
+        errors.push(`${notFound} códigos não encontrados no banco.`);
+      }
+      setArcsResult({ success, fail: fail + notFound, errors });
+
+      // Após concluir, sincroniza do Supabase para refletir nomes de piloto/status na UI
+      try {
+        await syncFromSupabaseToLocalStorage();
+      } catch {}
+    } catch (e: any) {
+      setArcsError('Erro ao processar a planilha: ' + (e.message || e.toString()));
+    }
+    setArcsLoading(false);
+    setArcsProgress(null);
   };
 
   // ============================================
@@ -118,9 +268,9 @@ export function TireStatusChange() {
 
     const updatedEntry = {
       ...selectedTire,
-      status: individualStatus as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
-      // Limpa contêiner apenas se for descarte
-      ...(individualStatus === 'Descarte' ? { containerId: '', containerName: '' } : {}),
+      status: individualStatus as 'Novo' | 'Piloto' | 'Descarte' | 'Descarte Piloto',
+      // Limpa contêiner apenas se for descarte convencional ou descarte piloto
+      ...(individualStatus === 'Descarte' || individualStatus === 'Descarte Piloto' ? { containerId: '', containerName: '' } : {}),
       updatedAt: new Date().toISOString(),
     };
 
@@ -262,9 +412,9 @@ export function TireStatusChange() {
     selectedTires.forEach(tire => {
       const updatedEntry = {
         ...tire,
-        status: bulkNewStatus as 'Novo' | 'Ativo' | 'Descarte' | 'Piloto',
-        // Limpa contêiner apenas se for descarte
-        ...(bulkNewStatus === 'Descarte' ? { containerId: '', containerName: '' } : {}),
+        status: bulkNewStatus as 'Novo' | 'Piloto' | 'Descarte' | 'Descarte Piloto',
+        // Limpa contêiner apenas se for descarte convencional ou descarte piloto
+        ...(bulkNewStatus === 'Descarte' || bulkNewStatus === 'Descarte Piloto' ? { containerId: '', containerName: '' } : {}),
         updatedAt: new Date().toISOString(),
       };
 
@@ -329,9 +479,10 @@ export function TireStatusChange() {
         </div>
 
         <Tabs defaultValue="individual" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-2">
+          <TabsList className="grid w-full max-w-3xl grid-cols-3">
             <TabsTrigger value="individual">Individual</TabsTrigger>
             <TabsTrigger value="bulk">Em Massa</TabsTrigger>
+            <TabsTrigger value="arcs">Base de dados ARCS</TabsTrigger>
           </TabsList>
 
           {/* ABA: INDIVIDUAL */}
@@ -777,6 +928,67 @@ export function TireStatusChange() {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          {/* ABA: ARCS */}
+          <TabsContent value="arcs" className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-gray-900 mb-4 flex items-center gap-2">
+                <Database size={20} className="text-purple-600" />
+                Base de dados ARCS
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Envie a planilha Excel (.xlsx) exportada do ARCS. O sistema vai ler a coluna <b>Serial</b>,
+                ajustar para 8 dígitos e atualizar o status conforme a coluna <b>Condição</b>:
+                <br />
+                <b>guardado</b> → <i>Piloto</i> | <b>descartado</b> → <i>Descarte Piloto</i>
+              </p>
+              <div className="space-y-3">
+                <Input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) handleArcsFile(e.target.files[0]);
+                  }}
+                  disabled={arcsLoading}
+                />
+                {arcsLoading && (
+                  <div className="text-purple-700">
+                    {arcsProgress ? (
+                      <div className="space-y-2">
+                        <p>Processando planilha... {arcsProgress.current}/{arcsProgress.total}</p>
+                        <div className="w-full h-2 bg-purple-100 rounded">
+                          <div
+                            className="h-2 bg-purple-600 rounded"
+                            style={{ width: `${Math.round((arcsProgress.current / arcsProgress.total) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p>Processando planilha...</p>
+                    )}
+                  </div>
+                )}
+                {arcsError && <p className="text-red-600">{arcsError}</p>}
+                {arcsResult && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded">
+                    <p className="text-sm text-purple-900 font-medium">Atualizações concluídas</p>
+                    <p className="text-sm text-green-700">Sucesso: {arcsResult.success}</p>
+                    {arcsResult.fail > 0 && <p className="text-sm text-red-700">Falhas: {arcsResult.fail}</p>}
+                    {arcsResult.errors.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-sm text-gray-600">Detalhes</summary>
+                        <ul className="text-xs text-red-700 list-disc pl-5">
+                          {arcsResult.errors.map((err, i) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
           </TabsContent>
         </Tabs>
 

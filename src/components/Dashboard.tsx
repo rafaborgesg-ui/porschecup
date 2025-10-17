@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Package, Activity, Trash2, TrendingUp, ArrowUpRight, ArrowDownRight, Calendar, ChevronDown, ChevronUp, Box, MapPin } from 'lucide-react';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { getStockEntries, getContainers, getTireModels } from '../utils/storage';
+import { getStockEntries, getContainers, getTireModels, getTireStatus } from '../utils/storage';
 import { SupabaseSyncMonitor } from './SupabaseSyncMonitor';
 // import { ResponsiveTable, ResponsiveGrid } from './ResponsiveTable';
 
@@ -16,13 +16,14 @@ interface StatCard {
   iconBg: string;
   accentColor: string;
   containers?: number;
-  type: 'total' | 'active' | 'new' | 'discard';
+  type: 'total' | 'active' | 'new' | 'discard' | 'pilotDiscard';
+  bgStyle?: React.CSSProperties;
 }
 
 export function Dashboard() {
   const [stats, setStats] = useState<StatCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCard, setSelectedCard] = useState<'total' | 'active' | 'new' | 'discard' | null>(null);
+  const [selectedCard, setSelectedCard] = useState<'total' | 'active' | 'new' | 'discard' | 'pilotDiscard' | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -38,13 +39,35 @@ export function Dashboard() {
     const allEntries = getStockEntries(true);
     const activeEntries = getStockEntries(false);
     // const containers = getContainers();
+    const statusList = getTireStatus();
+
+    const pilotDiscardHex = statusList.find(s => s.name === 'Descarte Piloto')?.color || '#F59E0B';
+
+    // helper to add alpha to #RRGGBB
+    const withAlpha = (hex: string, alpha: number) => {
+      try {
+        const a = Math.max(0, Math.min(1, alpha));
+        const aa = Math.round(a * 255).toString(16).padStart(2, '0');
+        // normalize 7-char #RRGGBB
+        if (/^#([0-9a-fA-F]{6})$/.test(hex)) return `${hex}${aa}`;
+        // try expand #RGB
+        if (/^#([0-9a-fA-F]{3})$/.test(hex)) {
+          const r = hex[1], g = hex[2], b = hex[3];
+          return `#${r}${r}${g}${g}${b}${b}${aa}`;
+        }
+        return hex;
+      } catch {
+        return hex;
+      }
+    };
 
     // Total de pneus EXCLUINDO os descartados
     const totalPneus = activeEntries.length;
   // Em vez de 'Ativo', considerar como "Piloto" para pneus em uso
   const pneusAtivos = activeEntries.filter(e => e.status === 'Piloto').length;
     const pneusNovos = activeEntries.filter(e => e.status === 'Novo').length;
-    const pneusDescartados = allEntries.filter(e => e.status === 'Descarte').length;
+  const pneusDescartados = allEntries.filter(e => e.status === 'Descarte').length;
+  const pneusDescartadosPiloto = allEntries.filter(e => e.status === 'Descarte Piloto').length;
     // const totalContainers = containers.length;
 
     // Calcula containers únicos por status
@@ -68,6 +91,12 @@ export function Dashboard() {
     const containersWithDescarte = new Set(
       allEntries
         .filter(e => e.status === 'Descarte')
+        .map(e => e.containerId)
+    ).size;
+
+    const containersWithDescartePiloto = new Set(
+      allEntries
+        .filter(e => e.status === 'Descarte Piloto')
         .map(e => e.containerId)
     ).size;
 
@@ -108,6 +137,21 @@ export function Dashboard() {
         accentColor: 'green',
         containers: containersWithAtivos,
         type: 'active',
+      },
+      {
+        title: 'Descarte Piloto',
+        value: pneusDescartadosPiloto,
+        change: -2,
+        changeLabel: 'em fase de piloto',
+        icon: Trash2,
+        gradient: '',
+        iconBg: 'from-[#F59E0B] to-[#D97706]',
+        accentColor: 'amber',
+        containers: containersWithDescartePiloto,
+        type: 'pilotDiscard',
+        bgStyle: {
+          background: `linear-gradient(to bottom right, ${withAlpha(pilotDiscardHex, 0.12)}, ${withAlpha(pilotDiscardHex, 0.24)})`
+        }
       },
       {
         title: 'Descartados',
@@ -166,7 +210,7 @@ export function Dashboard() {
               onClick={() => setSelectedCard(isSelected ? null : stat.type)}
               className={`
                 relative overflow-hidden
-                bg-gradient-to-br ${stat.gradient}
+                ${stat.bgStyle ? '' : `bg-gradient-to-br ${stat.gradient}`}
                 border-${stat.accentColor}-200
                 transition-all duration-300
                 hover:shadow-xl hover:scale-105
@@ -174,6 +218,7 @@ export function Dashboard() {
                 group
                 ${isSelected ? 'ring-4 ring-' + stat.accentColor + '-400 scale-105' : ''}
               `}
+              style={stat.bgStyle}
             >
               {/* Background decoration */}
               <div className={`
@@ -292,6 +337,11 @@ export function Dashboard() {
               title = 'Pneus Descartados';
               description = 'Pneus removidos do estoque ativo';
               headerColor = 'bg-gradient-to-r from-[#D50000] to-[#A80000]';
+            } else if (selectedCard === 'pilotDiscard') {
+              filteredEntries = allEntries.filter(e => e.status === 'Descarte Piloto');
+              title = 'Descarte Piloto';
+              description = 'Pneus descartados por piloto';
+              headerColor = 'bg-gradient-to-r from-[#F59E0B] to-[#D97706]';
             }
 
             // Limita a 20 itens mais recentes
@@ -415,14 +465,16 @@ export function Dashboard() {
                                   className={`
                                     ${entry.status === 'Novo' 
                                       ? 'bg-blue-100 text-blue-700 border-blue-200' 
-                                      : (entry.status === 'Ativo' || entry.status === 'Piloto')
+                                      : (entry.status === 'Piloto')
                                       ? 'bg-green-100 text-green-700 border-green-200'
                                       : entry.status === 'Descarte'
                                       ? 'bg-red-100 text-red-700 border-red-200'
+                                      : entry.status === 'Descarte Piloto'
+                                      ? 'bg-amber-100 text-amber-700 border-amber-200'
                                       : 'bg-gray-100 text-gray-700 border-gray-200'}
                                   `}
                                 >
-                                  {entry.status || 'Ativo'}
+                                  {entry.status || 'Novo'}
                                 </Badge>
                               </td>
                             </tr>
