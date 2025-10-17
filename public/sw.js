@@ -38,17 +38,23 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - Network first, falling back to cache
 self.addEventListener('fetch', (event) => {
+  // Apenas processa requisições GET para o cache (HEAD/POST/etc. não são suportadas pelo Cache API)
+  if (event.request.method !== 'GET') {
+    return; // deixa o navegador lidar normalmente
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response
-        const responseToCache = response.clone();
-        
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        
+        // Somente cacheia respostas 200 OK de requisições GET
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            })
+            .catch(() => {});
+        }
         return response;
       })
       .catch(() => {
